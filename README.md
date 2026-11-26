@@ -190,6 +190,13 @@ phone posts for which account), `hive-adb`, `hive-uia2` (the UI server), `hive-t
 (the app's flows, tested against a pretend TikTok) and `hive` (the command line, the
 queue and the dashboard).
 
+## Contributing
+
+Fixes for a TikTok update are the most welcome: see *Fixing a selector* in
+[CONTRIBUTING.md](CONTRIBUTING.md). The rules for code, and for coding agents working on
+the repository, are in [AGENTS.md](AGENTS.md). Security problems:
+[SECURITY.md](SECURITY.md).
+
 ## Licence
 
 MIT or Apache-2.0, at your option. The UiAutomator2 server Hive installs on phones is
