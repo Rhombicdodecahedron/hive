@@ -833,8 +833,18 @@ impl<'a, U: Ui, D: Device> TikTok<'a, U, D> {
     /// Make the post, its files already in the phone's gallery (newest first): open TikTok on the
     /// account, pick them, fill everything in, and tap Post (unless it's a draft).
     pub fn publish(&mut self, post: &Post) -> Result<PostReport> {
+        self.open_on(&post.account)?;
+        self.publish_here(post)
+    }
+
+    /// Open TikTok on `handle` (see [`TikTok::switch_to`]).
+    pub fn open_on(&mut self, handle: &Handle) -> Result<()> {
         self.launch()?;
-        self.switch_to(&post.account)?;
+        self.switch_to(handle)
+    }
+
+    /// [`TikTok::publish`] once TikTok is already on the post's account.
+    pub fn publish_here(&mut self, post: &Post) -> Result<PostReport> {
         let video = matches!(post.media, Media::Video { .. });
         (self.say)("picking the files");
         let mut report = PostReport::default();
