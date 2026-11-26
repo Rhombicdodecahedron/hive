@@ -81,6 +81,9 @@ hive post 1.jpg 2.jpg 3.jpg --account @yourpage --title "Three things" --caption
 ```
 
 One video file posts a video; pictures post a slideshow, in the order you give them.
+Ctrl+C stops a post at its next step, drops the half-made post and puts the phone back to
+sleep; once Post is tapped it is too late. In the dashboard, a running post has a
+**Cancel** button.
 
 | Option | What it does |
 | --- | --- |
@@ -130,6 +133,7 @@ the planned posts and what each post did, and a JSON API for your own tools:
 | `POST /api/posts` | Post now: `{"account", "files", "caption", "visibility", "draft"}` → a job |
 | `POST /api/queue` | Plan a post: the same, plus `"at"` |
 | `GET /api/jobs/{id}` | What a post did, line by line, and its result |
+| `POST /api/jobs/{id}/cancel` | Stop a post at its next step (never once Post was tapped) |
 | `POST /api/phones/{serial}/check` | Read the account TikTok is on |
 | `GET /api/phones/{serial}/screen.png` | The phone's screen |
 
@@ -156,7 +160,8 @@ For Claude Desktop, add it to `claude_desktop_config.json`:
 | `hive_phones` | The phones, whether each can post, and the accounts seen on them |
 | `hive_post` | Post a video or a slideshow now; returns a job |
 | `hive_job` | Follow a job until it's done, line by line |
-| `hive_plan`, `hive_queue`, `hive_cancel` | Plan posts, list them, remove one |
+| `hive_plan`, `hive_queue` | Plan posts, list them |
+| `hive_cancel` | Remove a planned post, or stop one that is being posted |
 | `hive_check` | Read the account TikTok is on, on one phone |
 
 ## When TikTok changes
