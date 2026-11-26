@@ -3,241 +3,622 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>hive</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4l24 14v28L32 60 8 46V18z' fill='%23ffc444'/%3E%3Cpath d='M32 4l24 14v28L32 60z' fill='%23ff7a3d'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4L8 18v28l24 14z' fill='%23ffc444'/%3E%3Cpath d='M32 4l24 14v28L32 60z' fill='%23ff7a3d'/%3E%3C/svg%3E">
 <style>
-  :root {
-    --black: #0b0906; --bg: #0e0b07; --panel: #17130c; --panel-2: #1f1a11; --line: #2b2417; --line-2: #3a3122;
-    --text: #f7efdf; --muted: #b3a891; --faint: #766d5b; --honey: #ffc444; --ember: #ff7a3d; --clover: #9bd67f;
-    --grad: linear-gradient(90deg, #ffd25e, #ffa63d 55%, #ff7a3d);
-    --ui: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
-    color-scheme: dark;
-  }
-  * { box-sizing: border-box; }
-  [hidden] { display: none !important; }
-  body { margin: 0; background: var(--black); color: var(--text); font: 15px/1.5 var(--ui); min-height: 100vh;
-         background-image: radial-gradient(60rem 30rem at -10% -10%, rgba(255,178,31,.10), transparent 60%),
-                           radial-gradient(60rem 30rem at 110% 0%, rgba(255,122,61,.08), transparent 60%); }
-  main { max-width: 1320px; margin: 0 auto; padding: 32px 32px 80px; }
-  header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
-  .mark { width: 30px; height: 30px; }
-  h1 { margin: 0; font-size: 30px; letter-spacing: -0.03em; font-weight: 800; background: var(--grad);
-       -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .status { color: var(--muted); margin-left: 6px; }
-  h2 { font-size: 15px; font-weight: 650; margin: 0 0 14px; color: var(--text); }
-  h2 small { color: var(--muted); font-weight: 400; margin-left: 6px; }
-  button, input, select, textarea { font: inherit; color: inherit; }
-  button { cursor: pointer; }
-  .btn { border: 1px solid var(--line-2); background: var(--panel-2); padding: 6px 12px; white-space: nowrap; border-radius: 999px; font-weight: 600; font-size: 14px; }
-  .btn:hover { border-color: var(--honey); }
-  .btn.primary { border: 0; background: var(--grad); color: #1a1006; }
-  .btn:disabled { opacity: .45; cursor: progress; }
-  .muted { color: var(--muted); }
+:root {
+  --comb: #0e0b07; --comb-raised: #17130c; --comb-high: #201a11; --hairline: #2b2417; --hairline-2: #3a3122;
+  --wax: #f7efdf; --wax-muted: #b3a891; --wax-faint: #766d5b;
+  --honey: #ffc444; --ember: #ff7a3d; --clover: #9bd67f;
+  --grad: linear-gradient(90deg, #ffd25e, #ffa63d 55%, #ff7a3d);
+  --ui: Inter, "Inter Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { background: var(--comb); }
+body { margin: 0; color: var(--wax); font: 15px/1.5 var(--ui); -webkit-font-smoothing: antialiased; min-height: 100vh;
+  background: radial-gradient(70rem 26rem at 15% -8rem, rgba(255,178,31,.07), transparent 70%), var(--comb); }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--honey); outline-offset: 2px; border-radius: 6px; }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.faint { color: var(--wax-faint); }
 
-  .phones { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; margin-bottom: 34px; }
-  .phone { display: grid; grid-template-columns: 112px 1fr; gap: 18px; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; }
-  .phone.ready { border-color: rgba(155,214,127,.35); }
-  .phone.blocked { border-color: rgba(255,122,61,.45); }
-  .handset { aspect-ratio: 9 / 19.5; border-radius: 18px; border: 1px solid var(--line-2); background: #000; overflow: hidden; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
-  .handset img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .phone h3 { margin: 0; font-size: 17px; letter-spacing: -0.01em; }
-  .serial { font: 12px var(--mono); color: var(--muted); }
-  .state { margin: 8px 0 10px; font-weight: 600; font-size: 14px; }
-  .ready .state { color: var(--clover); }
-  .blocked .state { color: var(--ember); }
-  .busy .state { color: var(--honey); }
-  dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0 0 12px; font-size: 13px; }
-  dt { color: var(--muted); }
-  dd { margin: 0; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+/* top */
+.top { display: flex; align-items: center; gap: 16px; padding: 16px 28px; border-bottom: 1px solid var(--hairline);
+  position: sticky; top: 0; z-index: 5; background: rgba(14,11,7,.86); backdrop-filter: blur(10px); }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand svg { width: 26px; height: 26px; }
+.brand b { font-size: 24px; font-weight: 800; letter-spacing: -0.035em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.summary { color: var(--wax-muted); font-size: 14px; }
+.summary strong { color: var(--wax); font-weight: 600; }
+.live { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--wax-faint); }
+.live i { width: 7px; height: 7px; border-radius: 50%; background: var(--wax-faint); }
+.live.on i { background: var(--clover); box-shadow: 0 0 0 3px rgba(155,214,127,.18); }
+.live.off { color: var(--ember); } .live.off i { background: var(--ember); }
 
-  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px; align-items: start; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; }
-  form { display: grid; gap: 12px; }
-  label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
-  input, select, textarea { background: var(--bg); border: 1px solid var(--line-2); border-radius: 10px; padding: 9px 11px; width: 100%; }
-  input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: none; border-color: var(--honey); box-shadow: 0 0 0 3px rgba(255,196,68,.15); }
-  textarea { resize: vertical; min-height: 84px; }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .check { display: flex; align-items: center; gap: 8px; color: var(--text); }
-  .check input { width: auto; accent-color: var(--honey); }
+/* layout */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 40px; padding: 30px 28px 80px; max-width: 1480px; margin: 0 auto; align-items: start; }
+.left { display: grid; gap: 44px; min-width: 0; }
+h2 { font-size: 13px; font-weight: 600; color: var(--wax-muted); margin: 0 0 14px; display: flex; align-items: baseline; gap: 10px; }
+h2 span { color: var(--wax-faint); font-weight: 400; }
 
-  .jobs { display: grid; gap: 12px; }
-  .job { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  .job header { margin: 0; padding: 9px 12px; gap: 10px; background: var(--panel-2); font-size: 14px; }
-  .job header b { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .tag { font: 12px var(--mono); padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
-  .running .tag { color: var(--honey); }
-  .done .tag { color: var(--clover); }
-  .failed .tag { color: var(--ember); }
-  .cancelled .tag { color: var(--muted); }
-  .job header .btn { padding: 2px 10px; font-size: 12px; }
-  pre { margin: 0; padding: 10px 12px; max-height: 220px; overflow: auto; font: 12px/1.6 var(--mono); color: #d8cdb6; white-space: pre-wrap; }
+/* the shelf: each phone stands on it like it does on the desk */
+.shelf { display: flex; gap: 36px; flex-wrap: wrap; align-items: flex-start; padding-top: 4px; }
+.phone { width: 176px; display: grid; gap: 14px; }
+.handset { position: relative; width: 150px; aspect-ratio: 9 / 19.5; margin: 0 auto; border-radius: 26px; padding: 6px;
+  background: #120f0a; border: 1.5px solid var(--hairline-2); box-shadow: 0 24px 40px -18px rgba(0,0,0,.7); transition: border-color .2s, box-shadow .2s; }
+.glass { width: 100%; height: 100%; border-radius: 20px; overflow: hidden; background: #060504; display: grid; place-items: center; }
+.glass img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rest { text-align: center; color: var(--wax-faint); display: grid; gap: 2px; }
+.rest b { font-weight: 300; font-size: 26px; letter-spacing: -0.03em; color: #8f8573; white-space: nowrap; }
+.rest small { font-size: 11.5px; }
+.cam { position: absolute; top: 12px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; background: #000; z-index: 2; }
+.phone.ready .handset { border-color: rgba(155,214,127,.35); }
+.phone.busy .handset { border-color: var(--honey); box-shadow: 0 0 0 4px rgba(255,196,68,.12), 0 26px 50px -12px rgba(255,150,40,.35); }
+.phone.blocked .handset { border-color: rgba(255,122,61,.5); }
+.phone.gone .handset { opacity: .45; }
+.ledge { height: 1px; background: var(--hairline-2); margin: 0 -18px; position: relative; }
+.phone.busy .ledge::after { content: ""; position: absolute; inset: -1px 10%; height: 3px; border-radius: 3px; background: var(--grad); }
+.info { display: grid; gap: 6px; font-size: 13px; }
+.info h3 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.state { display: flex; gap: 7px; align-items: center; font-weight: 550; }
+.state i { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--wax-faint); }
+.ready .state { color: var(--clover); } .ready .state i { background: var(--clover); }
+.busy .state { color: var(--honey); } .busy .state i { background: var(--honey); animation: pulse 1.2s ease-in-out infinite; }
+.blocked .state, .gone .state { color: var(--ember); } .blocked .state i, .gone .state i { background: var(--ember); }
+.why { color: var(--wax-muted); font-size: 12.5px; line-height: 1.4; }
+.facts { color: var(--wax-muted); display: grid; gap: 2px; }
+.facts b { color: var(--wax); font-weight: 550; }
+.battery { display: inline-flex; align-items: center; gap: 6px; }
+.battery > span:first-child { width: 22px; height: 10px; border: 1px solid var(--wax-faint); border-radius: 2px; padding: 1px; display: inline-block; }
+.battery i { display: block; height: 100%; background: var(--wax-muted); border-radius: 1px; }
+.battery.charging i { background: var(--clover); }
+.battery.low i { background: var(--ember); }
+.actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+.link { background: none; border: 0; padding: 0; color: var(--honey); font-size: 13px; }
+.link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.link:disabled { color: var(--wax-faint); cursor: default; text-decoration: none; }
+.empty-shelf { display: grid; grid-template-columns: 100px 1fr; gap: 24px; align-items: center; color: var(--wax-muted); max-width: 560px; }
+.empty-shelf .handset { width: 92px; border-style: dashed; box-shadow: none; }
+.empty-shelf p { margin: 0 0 6px; }
+.empty-shelf strong { color: var(--wax); }
 
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--muted); font-weight: 500; font-size: 13px; }
-  td.when { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
-  .s-pending, .s-posting { color: var(--honey); } .s-posted { color: var(--clover); } .s-failed { color: var(--ember); } .s-skipped { color: var(--faint); } .s-on_phone { color: var(--text); }
-  .empty { color: var(--muted); padding: 6px 0; }
-  .queue { margin-top: 22px; overflow-x: auto; }
-  td .btn { padding: 3px 10px; font-size: 13px; }
-  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } main { padding: 20px 16px 60px; } }
+/* activity */
+.jobs { display: grid; }
+.job { border-top: 1px solid var(--hairline); padding: 14px 2px; display: grid; gap: 10px; }
+.job-head { display: flex; gap: 12px; align-items: baseline; }
+.job-head b { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.job-head time { color: var(--wax-faint); font-size: 13px; }
+.tag { font-size: 12.5px; font-weight: 600; min-width: 64px; }
+.tag.running { color: var(--honey); } .tag.done { color: var(--clover); } .tag.failed { color: var(--ember); } .tag.cancelled { color: var(--wax-faint); }
+.steps { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.steps i { height: 3px; border-radius: 3px; background: var(--hairline-2); transition: background .3s; }
+.steps i.on { background: var(--honey); }
+.done .steps i.on { background: var(--clover); }
+.failed .steps i.on { background: var(--ember); }
+.cancelled .steps i.on { background: var(--wax-faint); }
+.steps-labels { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; font-size: 12px; color: var(--wax-faint); margin-top: -4px; }
+.steps-labels .now { color: var(--wax); }
+.job details summary { cursor: pointer; color: var(--wax-faint); font-size: 12.5px; list-style: none; width: max-content; }
+.job details summary::-webkit-details-marker { display: none; }
+.job details summary::before { content: "▸ "; }
+.job details[open] summary::before { content: "▾ "; }
+.job pre { margin: 8px 0 0; padding: 10px 12px; background: var(--comb-raised); border: 1px solid var(--hairline); border-radius: 8px;
+  max-height: 220px; overflow: auto; font: 12px/1.6 var(--mono); color: #d8cdb6; white-space: pre-wrap; }
+.result { font-size: 13.5px; }
+.result:empty { display: none; }
+.result.bad { color: var(--ember); }
+.btn-quiet { background: none; border: 1px solid var(--hairline-2); border-radius: 999px; padding: 2px 12px; font-size: 12.5px; color: var(--wax-muted); }
+.btn-quiet:hover { border-color: var(--ember); color: var(--ember); }
+.nothing { color: var(--wax-faint); padding: 14px 2px; border-top: 1px solid var(--hairline); margin: 0; }
+
+/* plan */
+.day + .day { margin-top: 18px; }
+.day h3 { font-size: 13px; font-weight: 600; margin: 0 0 6px; color: var(--wax); }
+.slot { display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 14px; align-items: baseline; padding: 9px 2px; border-top: 1px solid var(--hairline); }
+.slot time { font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.what { min-width: 0; }
+.what b { font-weight: 550; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.what small { color: var(--wax-faint); font-size: 12.5px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st { font-size: 12.5px; font-weight: 600; display: flex; align-items: baseline; gap: 10px; }
+.st.pending { color: var(--wax-muted); } .st.posting { color: var(--honey); } .st.posted { color: var(--clover); }
+.st.failed, .st.on_phone { color: var(--ember); } .st.skipped { color: var(--wax-faint); }
+
+/* composer */
+.composer { position: sticky; top: 84px; background: var(--comb-raised); border: 1px solid var(--hairline); border-radius: 16px; padding: 20px; display: grid; gap: 14px; }
+.composer h2 { margin: 0; color: var(--wax); font-size: 15px; }
+.field { display: grid; gap: 6px; font-size: 12.5px; color: var(--wax-muted); }
+input[type=text], input[type=datetime-local], textarea { width: 100%; background: var(--comb); border: 1px solid var(--hairline-2); border-radius: 10px; padding: 9px 11px; color: var(--wax); }
+input::placeholder, textarea::placeholder { color: var(--wax-faint); }
+input:focus, textarea:focus { outline: none; border-color: var(--honey); box-shadow: 0 0 0 3px rgba(255,196,68,.14); }
+textarea { resize: vertical; min-height: 96px; line-height: 1.45; }
+.count { justify-self: end; font-size: 12px; color: var(--wax-faint); margin-top: -8px; }
+.count.over { color: var(--ember); }
+.drop { border: 1.5px dashed var(--hairline-2); border-radius: 12px; padding: 18px 16px; display: grid; gap: 4px; justify-items: center; text-align: center; color: var(--wax-muted); transition: border-color .15s, background .15s; cursor: pointer; }
+.drop strong { color: var(--wax); font-weight: 600; }
+.drop small { color: var(--wax-faint); font-size: 12px; }
+.drop:hover, .drop.over { border-color: var(--honey); }
+.drop.over { background: rgba(255,196,68,.06); }
+.files { display: grid; gap: 6px; }
+.files:empty { display: none; }
+.file { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 10px; border-radius: 9px; background: var(--comb); border: 1px solid var(--hairline); font-size: 13px; }
+.file .n { font-weight: 600; font-size: 12px; color: var(--honey); text-align: center; font-variant-numeric: tabular-nums; }
+.file > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file .bar { grid-column: 2 / 4; height: 2px; background: var(--hairline-2); border-radius: 2px; overflow: hidden; }
+.file .bar i { display: block; height: 100%; background: var(--honey); width: 0; transition: width .15s; }
+.file button { background: none; border: 0; color: var(--wax-faint); padding: 0 2px; font-size: 16px; line-height: 1; }
+.file button:hover { color: var(--ember); }
+.path { display: flex; gap: 6px; }
+.path input { flex: 1; font-family: var(--mono); font-size: 12px; }
+.btn-add { background: var(--comb-high); border: 1px solid var(--hairline-2); border-radius: 9px; padding: 0 12px; color: var(--wax); font-size: 13px; }
+.btn-add:hover { border-color: var(--honey); }
+.seg { display: flex; background: var(--comb); border: 1px solid var(--hairline-2); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg label { flex: 1; position: relative; font-size: 13px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: block; text-align: center; padding: 5px 8px; border-radius: 7px; color: var(--wax-muted); cursor: pointer; }
+.seg span:hover { color: var(--wax); }
+.seg input:checked + span { background: var(--comb-high); color: var(--wax); box-shadow: inset 0 0 0 1px var(--hairline-2); }
+.seg input:focus-visible + span { outline: 2px solid var(--honey); }
+.check { display: flex; gap: 9px; align-items: center; color: var(--wax); font-size: 13.5px; cursor: pointer; }
+.check input { accent-color: var(--honey); width: 15px; height: 15px; margin: 0; }
+.go { border: 0; border-radius: 11px; padding: 11px 16px; background: var(--grad); color: #1a1006; font-weight: 700; font-size: 15px; transition: filter .15s, transform .05s; }
+.go:hover { filter: brightness(1.06); }
+.go:active { transform: translateY(1px); }
+.go:disabled { background: var(--comb-high); color: var(--wax-faint); box-shadow: inset 0 0 0 1px var(--hairline-2); cursor: not-allowed; filter: none; transform: none; }
+.hint { font-size: 12.5px; color: var(--wax-faint); margin: -4px 0 0; min-height: 1.2em; }
+.hint.bad { color: var(--ember); } .hint.good { color: var(--clover); }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(16px); opacity: 0; background: var(--comb-high); border: 1px solid var(--hairline-2);
+  color: var(--wax); padding: 10px 16px; border-radius: 10px; font-size: 14px; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 10; max-width: calc(100vw - 32px); }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+.toast.bad { border-color: var(--ember); }
+
+@keyframes pulse { 50% { opacity: .35; } }
+@media (max-width: 1080px) { .layout { grid-template-columns: 1fr; } .composer { position: static; order: -1; } }
+@media (max-width: 560px) { .top { padding: 12px 16px; flex-wrap: wrap; } .layout { padding: 20px 16px 60px; } .shelf { gap: 24px; } .phone { width: 150px; } .handset { width: 130px; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4l24 14v28L32 60 8 46V18z" fill="#ffc444"/><path d="M32 4l24 14v28L32 60z" fill="#ff7a3d"/><path d="M32 4v56" stroke="#0e0b07" stroke-width="3"/></svg>
-    <h1>hive</h1>
-    <span class="status" id="status">Reading the phones…</span>
-  </header>
+<header class="top">
+  <a class="brand" href="/" aria-label="hive">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6L9.5 19v26L32 58z" fill="#ffc444"/><path d="M32 6l22.5 13v26L32 58z" fill="#ff7a3d"/><path d="M32 4v56" stroke="#0e0b07" stroke-width="3"/></svg>
+    <b>hive</b>
+  </a>
+  <span class="summary" id="summary">Reading the phones…</span>
+  <span class="live" id="live"><i></i><span>connecting</span></span>
+</header>
 
-  <section>
-    <h2>Phones <small>plug one in with USB debugging on</small></h2>
-    <div class="phones" id="phones"></div>
-  </section>
-
-  <div class="grid">
-    <section class="panel">
-      <h2>New post</h2>
-      <form id="post">
-        <div class="row">
-          <label>Account <input name="account" placeholder="@account" required></label>
-          <label>Who can see it
-            <select name="visibility"><option value="everyone">Everyone</option><option value="friends">Friends</option><option value="only_you">Only you</option></select>
-          </label>
-        </div>
-        <label>Files on this computer, one per line <textarea name="files" placeholder="/home/you/clips/clip.mp4&#10;or several pictures for a slideshow" required></textarea></label>
-        <label>Description <textarea name="caption" placeholder="What it's about #hashtags"></textarea></label>
-        <div class="row">
-          <label>Sound to search (optional) <input name="sound" placeholder="leave empty for none"></label>
-          <label>Plan for (optional) <input type="datetime-local" name="at"></label>
-        </div>
-        <label class="check"><input type="checkbox" name="draft"> Draft: fill everything in, leave Post to me</label>
-        <div class="actions"><button class="btn primary" type="submit" id="submit">Post now</button><span class="muted" id="form-note"></span></div>
-      </form>
-      <div class="queue">
-        <h2>Planned</h2>
-        <div id="queue"></div>
-      </div>
+<main class="layout">
+  <div class="left">
+    <section aria-labelledby="h-phones">
+      <h2 id="h-phones">Phones <span id="phones-note"></span></h2>
+      <div class="shelf" id="shelf"></div>
     </section>
-    <section class="panel">
-      <h2>Activity</h2>
-      <div class="jobs" id="jobs"><p class="empty">Nothing yet.</p></div>
+
+    <section aria-labelledby="h-activity">
+      <h2 id="h-activity">Activity</h2>
+      <div class="jobs" id="jobs"></div>
+      <p class="nothing" id="no-jobs">Nothing has run since hive started.</p>
+    </section>
+
+    <section aria-labelledby="h-plan">
+      <h2 id="h-plan">Planned</h2>
+      <div id="plan"></div>
+      <p class="nothing" id="no-plan">Nothing planned. Choose Later in New post to plan one.</p>
     </section>
   </div>
+
+  <form class="composer" id="composer" autocomplete="off" novalidate>
+    <h2>New post</h2>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Add a video or pictures">
+      <strong>Drop a video or pictures</strong>
+      <small>or click to choose. Pictures post as a slideshow, in this order.</small>
+      <input type="file" id="picker" accept="video/*,image/*" multiple hidden>
+    </div>
+    <div class="files" id="files"></div>
+    <div class="path">
+      <input type="text" id="path" placeholder="or a path on this computer" aria-label="File path on this computer">
+      <button type="button" class="btn-add" id="add-path">Add</button>
+    </div>
+    <label class="field">Account
+      <input type="text" name="account" list="accounts" placeholder="@yourpage" spellcheck="false">
+      <datalist id="accounts"></datalist>
+    </label>
+    <label class="field">Description
+      <textarea name="caption" placeholder="What it's about #hashtags"></textarea>
+    </label>
+    <div class="count num" id="count"></div>
+    <div class="field">Who can see it
+      <div class="seg">
+        <label><input type="radio" name="visibility" value="everyone" checked><span>Everyone</span></label>
+        <label><input type="radio" name="visibility" value="friends"><span>Friends</span></label>
+        <label><input type="radio" name="visibility" value="only_you"><span>Only you</span></label>
+      </div>
+    </div>
+    <div class="field">When
+      <div class="seg">
+        <label><input type="radio" name="when" value="now" checked><span>Now</span></label>
+        <label><input type="radio" name="when" value="later"><span>Later</span></label>
+      </div>
+    </div>
+    <input type="datetime-local" name="at" id="at" hidden aria-label="Post at">
+    <label class="field">Sound <input type="text" name="sound" placeholder="leave empty to keep TikTok's choice"></label>
+    <label class="check"><input type="checkbox" name="draft"> Draft: fill it all in, leave Post to me</label>
+    <button class="go" id="go" type="submit">Post now</button>
+    <p class="hint" id="hint" role="status"></p>
+  </form>
 </main>
+<div class="toast" id="toast" role="status"></div>
+
 <script>
-const $ = (s) => document.querySelector(s);
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const h = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const setText = (el, t) => { if (el.textContent !== t) el.textContent = t; };
+const setHTML = (el, t) => { if (el.dataset.k !== t) { el.dataset.k = t; el.innerHTML = t; } };
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const api = async (path, opts = {}) => {
+const hm = (t) => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function dayName(t) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const x = new Date(t); x.setHours(0, 0, 0, 0);
+  const diff = Math.round((x - today) / 864e5);
+  if (diff === 0) return "Today"; if (diff === 1) return "Tomorrow"; if (diff === -1) return "Yesterday";
+  return x.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
+}
+async function api(path, opts = {}) {
   const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(body.error || r.statusText);
   return body;
-};
-const at = (t) => new Date(t).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-
-function phoneCard(v) {
-  const p = v.phone ?? v, s = v.status || {};
-  const cls = v.busy ? "busy" : v.blocker ? "blocked" : "ready";
-  const state = v.busy ? "Posting right now" : v.blocker ? v.blocker[0].toUpperCase() + v.blocker.slice(1) : "Ready to post";
-  const lock = s.lock?.secure === true ? "code (hive can't open it)" : s.lock?.secure === false ? "no code" : "unknown";
-  const seen = Object.keys(v.notes?.accounts || {}).map((h) => "@" + h).join(", ") || "none yet";
-  const screen = s.awake ? `<img data-serial="${esc(v.serial)}" src="/api/phones/${encodeURIComponent(v.serial)}/screen.png?t=${Date.now()}" alt="">` : (v.state === "device" ? "asleep" : "no access");
-  return `<article class="phone ${cls}">
-    <div class="handset">${screen}</div>
-    <div>
-      <h3>${esc(v.model || v.serial)}</h3>
-      <div class="serial">${esc(v.serial)}${s.android ? ", Android " + esc(s.android) : ""}</div>
-      <div class="state">${esc(state)}</div>
-      ${v.state === "device" ? `<dl>
-        <dt>Battery</dt><dd>${s.battery ?? "?"}%${s.charging ? ", charging" : ""}</dd>
-        <dt>Lock</dt><dd>${lock}</dd>
-        <dt>TikTok</dt><dd>${s.tiktok ? (v.notes?.current ? "on @" + esc(v.notes.current) : "installed") : "missing"}</dd>
-        <dt>Accounts</dt><dd>${esc(seen)}</dd>
-        ${v.bound?.length ? `<dt>Posts for</dt><dd>${v.bound.map((h) => "@" + esc(h)).join(", ")}</dd>` : ""}
-        ${v.notes?.last_post ? `<dt>Last post</dt><dd>${esc(v.notes.last_post.replace("T", " ").slice(0, 16) + v.notes.last_post.slice(v.notes.last_post.indexOf(" @")))}</dd>` : ""}
-      </dl>
-      <div class="actions">
-        <button class="btn" data-act="check" data-serial="${esc(v.serial)}" ${v.busy ? "disabled" : ""}>Read its account</button>
-        <button class="btn" data-act="${s.awake ? "sleep" : "wake"}" data-serial="${esc(v.serial)}">${s.awake ? "Screen off" : "Screen on"}</button>
-      </div>` : ""}
-    </div></article>`;
+}
+let toastTimer;
+function toast(msg, bad) {
+  const t = $("#toast"); t.textContent = msg; t.className = "toast show" + (bad ? " bad" : "");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), bad ? 6000 : 2600);
 }
 
-let lastPhones = "";
-async function phones() {
-  try {
-    const list = await api("/api/phones");
-    const key = JSON.stringify(list.map((v) => [v.serial, v.state, v.blocker, v.busy, v.status?.awake, v.status?.battery, v.notes]));
-    if (key !== lastPhones) {
-      lastPhones = key;
-      $("#phones").innerHTML = list.length ? list.map(phoneCard).join("") : '<p class="empty">No phone plugged in. Turn on USB debugging (Developer options), plug it in and allow this computer.</p>';
+/* Live state: one long-poll. The server holds it until something changes, so updates land at once
+   and an idle tab costs one request every 25 s. */
+let S = null, rev = 0;
+async function loop() {
+  for (;;) {
+    try {
+      const r = await fetch(`/api/state?since=${rev}&wait=25`, { cache: "no-store" });
+      if (!r.ok) throw new Error(r.statusText);
+      S = await r.json(); rev = S.rev;
+      live(true); render();
+    } catch (_) {
+      live(false); rev = 0; await new Promise((r) => setTimeout(r, 2000));
     }
-    const ready = list.filter((v) => !v.blocker && !v.busy).length;
-    $("#status").textContent = `${list.length} phone${list.length === 1 ? "" : "s"}, ${ready} ready`;
-  } catch (e) { $("#status").textContent = "hive isn't answering: " + e.message; }
+  }
+}
+function live(on) {
+  const l = $("#live"); l.className = "live " + (on ? "on" : "off");
+  setText($("span", l), on ? "live" : "hive isn't answering");
+}
+function render() {
+  renderPhones(); renderJobs(); renderPlan();
+  const want = S.accounts.join("|");
+  const dl = $("#accounts");
+  if (dl.dataset.k !== want) { dl.dataset.k = want; dl.replaceChildren(...S.accounts.map((a) => Object.assign(h("option"), { value: "@" + a }))); }
+  const ready = S.phones.filter((p) => phoneClass(p) === "ready").length;
+  const posting = S.jobs.filter((j) => j.state === "running" && j.kind === "post").length;
+  const planned = S.queue.filter((e) => e.status === "pending").length;
+  const n = S.phones.length;
+  const parts = [`<strong>${n}</strong> phone${n === 1 ? "" : "s"}${n ? `, ${ready} ready` : ""}`];
+  if (posting) parts.push(`<strong>${posting}</strong> posting`);
+  parts.push(`${planned} planned`);
+  setHTML($("#summary"), parts.join(", "));
 }
 
-async function jobs() {
-  const list = await api("/api/jobs").catch(() => []);
-  $("#jobs").innerHTML = list.length ? list.slice(0, 8).map((j) => `<div class="job ${j.state}">
-      <header><b>${esc(j.label)}</b>${j.state === "running" && j.kind === "post" && !j.cancelled ? `<button class="btn" data-cancel="${j.id}">Cancel</button>` : ""}<span class="tag">${j.cancelled && j.state === "running" ? "cancelling" : j.state}</span></header>
-      <pre>${esc(j.lines.join("\n") || "starting…")}</pre></div>`).join("") : '<p class="empty">Nothing yet.</p>';
+/* Phones: one card per serial, kept and updated in place so nothing flickers. */
+const cards = new Map();
+function phoneClass(p) { return p.busy ? "busy" : p.state !== "device" ? "gone" : p.blocker ? "blocked" : "ready"; }
+function makePhone(serial) {
+  const el = h("article", "phone");
+  el.dataset.serial = serial;
+  el.innerHTML = `<div class="handset"><span class="cam"></span><div class="glass"></div></div><div class="ledge"></div>
+    <div class="info"><h3></h3><div class="state"><i></i><span></span></div><div class="why"></div><div class="facts"></div>
+    <div class="actions"><button class="link" data-act="check" type="button">Read its account</button><button class="link" data-act="power" type="button"></button></div></div>`;
+  return el;
+}
+function renderPhones() {
+  const shelf = $("#shelf");
+  if (!S.phones.length) {
+    for (const el of cards.values()) el.remove();
+    cards.clear(); screens.clear();
+    if (!$(".empty-shelf", shelf)) shelf.innerHTML = `<div class="empty-shelf"><div class="handset"><div class="glass"></div></div><div>
+      <p><strong>No phone plugged in.</strong></p><p>Turn on USB debugging in the phone's Developer options, plug it in, and allow this computer on its screen.</p></div></div>`;
+    setText($("#phones-note"), ""); return;
+  }
+  $(".empty-shelf", shelf)?.remove();
+  const seen = new Set();
+  for (const p of S.phones) {
+    seen.add(p.serial);
+    let el = cards.get(p.serial);
+    if (!el) { el = makePhone(p.serial); cards.set(p.serial, el); shelf.append(el); }
+    const s = p.status || {};
+    const kind = phoneClass(p);
+    const cls = "phone " + kind;
+    if (el.className !== cls) el.className = cls;
+    setText($("h3", el), p.model || p.serial);
+    setText($(".state span", el), { busy: "Posting", gone: "No access", blocked: "Can't post", ready: "Ready" }[kind]);
+    setText($(".why", el), p.blocker ? p.blocker[0].toUpperCase() + p.blocker.slice(1) + "." : "");
+    const facts = [];
+    if (s.battery != null) {
+      const low = s.battery < 15 && !s.charging;
+      facts.push(`<span class="battery${s.charging ? " charging" : ""}${low ? " low" : ""}"><span><i style="width:${s.battery}%"></i></span><span class="num">${s.battery}%${s.charging ? ", charging" : ""}</span></span>`);
+    }
+    const acc = p.notes?.current;
+    if (acc) facts.push(`<span>TikTok on <b>@${esc(acc)}</b></span>`);
+    else if (s.tiktok) facts.push(`<span class="faint">TikTok installed, account not read yet</span>`);
+    const others = Object.keys(p.notes?.accounts || {}).filter((a) => a !== acc);
+    if (others.length) facts.push(`<span class="faint">also ${others.map((a) => "@" + esc(a)).join(", ")}</span>`);
+    if (p.bound?.length) facts.push(`<span class="faint">posts for ${p.bound.map((a) => "@" + esc(a)).join(", ")}</span>`);
+    if (s.android) facts.push(`<span class="faint">Android ${esc(s.android)}</span>`);
+    facts.push(`<span class="mono faint">${esc(p.serial)}</span>`);
+    setHTML($(".facts", el), facts.join(""));
+    // the screen: live while the phone is awake, a resting clock while it sleeps
+    const glass = $(".glass", el);
+    const awake = s.awake === true && p.state === "device";
+    if (awake && !$("img", glass)) {
+      glass.replaceChildren(Object.assign(h("img"), { alt: `${p.model || p.serial}'s screen`, decoding: "async" }));
+      screens.add(p.serial); pullScreen(p.serial, true);
+    }
+    if (!awake) {
+      screens.delete(p.serial);
+      if (!$(".rest", glass)) glass.innerHTML = `<div class="rest"><b class="num"></b><small></small></div>`;
+      setText($(".rest b", glass), new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+      setText($(".rest small", glass), p.state !== "device" ? "no access" : "asleep");
+    }
+    $('[data-act="check"]', el).disabled = kind !== "ready";
+    const power = $('[data-act="power"]', el);
+    setText(power, awake ? "Turn the screen off" : "Turn the screen on");
+    power.dataset.to = awake ? "sleep" : "wake";
+    power.disabled = p.state !== "device" || p.busy;
+  }
+  for (const [serial, el] of cards) if (!seen.has(serial)) { el.remove(); cards.delete(serial); screens.delete(serial); }
+  setText($("#phones-note"), "plug in more and they show up here");
 }
 
-async function queue() {
-  const list = (await api("/api/queue").catch(() => [])).filter((e) => e.status !== "posted" || Date.now() - new Date(e.done_at) < 864e5);
-  $("#queue").innerHTML = list.length ? `<table><tr><th>When</th><th>Account</th><th>What</th><th>Status</th><th></th></tr>${list.map((e) => {
-    const f = (e.post.media.file || e.post.media.images?.[0] || "").split("/").pop();
-    return `<tr><td class="when">${at(e.at)}</td><td>@${esc(e.post.account)}</td><td>${esc(f)}${e.post.media.images ? ` +${e.post.media.images.length - 1}` : ""}<div class="muted">${esc(e.note)}</div></td>
-      <td class="s-${e.status}">${e.status.replace("_", " ")}</td><td>${e.status === "pending" ? `<button class="btn" data-rm="${esc(e.id)}">Remove</button>` : e.status === "posting" ? `<button class="btn" data-rm="${esc(e.id)}">Cancel</button>` : ""}</td></tr>`;
-  }).join("")}</table>` : '<p class="empty">Nothing planned.</p>';
+// Live screens: fetched in the background and swapped in, every second on a phone that is posting,
+// every three otherwise, never while the tab is hidden.
+const screens = new Set(), pulling = new Set();
+let tick = 0;
+async function pullScreen(serial, now) {
+  if (pulling.has(serial) || (!now && document.hidden)) return;
+  const img = cards.get(serial)?.querySelector(".glass img");
+  if (!img) return;
+  pulling.add(serial);
+  try {
+    const r = await fetch(`/api/phones/${encodeURIComponent(serial)}/screen.png`, { cache: "no-store" });
+    if (r.ok) {
+      const url = URL.createObjectURL(await r.blob());
+      const old = img.src;
+      img.src = url;
+      if (old.startsWith("blob:")) setTimeout(() => URL.revokeObjectURL(old), 1000);
+    }
+  } catch (_) { /* the next round tries again */ } finally { pulling.delete(serial); }
+}
+setInterval(() => {
+  tick++;
+  for (const s of screens) if (S?.phones.find((p) => p.serial === s)?.busy || tick % 3 === 0) pullScreen(s);
+}, 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) for (const s of screens) pullScreen(s, true); });
+
+/* Activity: what each job is doing, read from the lines it says. */
+const STEPS = [["waking it up", "Waking"], ["starting the UI server", "Opening"], ["picking the files", "Picking"], ["filling the post in", "Writing"], ["posting", "Posting"]];
+const rows = new Map();
+function stepOf(job) {
+  if (job.state === "done") return 6;
+  let n = 0;
+  for (const line of job.lines) STEPS.forEach(([k], i) => { if (line.endsWith(k) || line.includes(k + " ")) n = Math.max(n, i + 1); });
+  return n;
+}
+function makeJob() {
+  const el = h("div", "job");
+  el.innerHTML = `<div class="job-head"><span class="tag"></span><b></b><time class="num"></time></div>
+    <div class="steps" aria-hidden="true">${"<i></i>".repeat(6)}</div>
+    <div class="steps-labels" aria-hidden="true">${STEPS.map(([, l]) => `<span>${l}</span>`).join("")}<span>Done</span></div>
+    <div class="result"></div><details><summary>What it did</summary><pre></pre></details>`;
+  return el;
+}
+function jobLabel(j) {
+  const serial = j.label.split(" ").pop();
+  const phone = S.phones.find((p) => p.serial === serial);
+  const name = phone?.model || serial;
+  if (j.kind === "check") return `Read the account on ${name}`;
+  if (j.kind === "setup") return `Set up ${name}`;
+  return j.label.replace(/^.*[\\/]/, "");
+}
+function jobResult(j) {
+  const r = j.result;
+  if (j.state === "running") return j.cancelled ? ["Stopping at the next step.", false] : ["", false];
+  if (j.state === "cancelled") return ["Stopped before Post: nothing was posted.", false];
+  if (r?.error) return [r.error, true];
+  if (r?.report) {
+    const rep = r.report;
+    if (rep.posted) return [`Posted from ${r.phone}.`, false];
+    if (rep.problems.length) return ["Left on the phone to finish: " + rep.problems.join("; "), true];
+    return ["Draft ready on the phone: tap Post when you're happy with it.", false];
+  }
+  if (r?.account) return [`TikTok is on @${r.account}.`, false];
+  return ["", false];
+}
+function renderJobs() {
+  const box = $("#jobs");
+  $("#no-jobs").hidden = S.jobs.length > 0;
+  const seen = new Set();
+  S.jobs.forEach((j, i) => {
+    seen.add(j.id);
+    let el = rows.get(j.id);
+    if (!el) { el = makeJob(); rows.set(j.id, el); }
+    if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null);
+    const isPost = j.kind === "post";
+    el.className = "job " + j.state;
+    const tag = $(".tag", el);
+    tag.className = "tag " + j.state;
+    setText(tag, j.state === "running" ? (j.cancelled ? "stopping" : isPost ? "posting" : "working") : j.state);
+    setText($("b", el), jobLabel(j));
+    setText($("time", el), hm(j.started));
+    $(".steps", el).hidden = $(".steps-labels", el).hidden = !isPost;
+    if (isPost) {
+      const n = stepOf(j);
+      [...$(".steps", el).children].forEach((s, k) => s.classList.toggle("on", k < n));
+      [...$(".steps-labels", el).children].forEach((s, k) => s.classList.toggle("now", k === n - 1));
+    }
+    const [text, bad] = jobResult(j);
+    const res = $(".result", el); setText(res, text); res.classList.toggle("bad", bad);
+    const canStop = j.state === "running" && isPost && !j.cancelled;
+    let btn = $(".btn-quiet", el);
+    if (canStop && !btn) { btn = h("button", "btn-quiet", "Stop"); btn.type = "button"; btn.dataset.stop = j.id; $(".job-head", el).append(btn); }
+    if (!canStop && btn) btn.remove();
+    const pre = $("pre", el), log = j.lines.join("\n");
+    if (pre.textContent !== log) {
+      const atEnd = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 4;
+      pre.textContent = log;
+      if (atEnd) pre.scrollTop = pre.scrollHeight;
+    }
+  });
+  for (const [id, el] of rows) if (!seen.has(id)) { el.remove(); rows.delete(id); }
 }
 
+/* Planned: by day, in order. */
+const STATUS = { pending: "planned", posting: "posting", posted: "posted", on_phone: "to finish on the phone", failed: "failed", skipped: "skipped" };
+function renderPlan() {
+  const list = [...S.queue].sort((a, b) => new Date(a.at) - new Date(b.at));
+  $("#no-plan").hidden = list.length > 0;
+  const days = new Map();
+  for (const e of list) { const k = dayName(e.at); if (!days.has(k)) days.set(k, []); days.get(k).push(e); }
+  setHTML($("#plan"), [...days].map(([day, es]) => `<div class="day"><h3>${esc(day)}</h3>${es.map((e) => {
+    const files = e.post.media.file ? [e.post.media.file] : e.post.media.images;
+    const name = files[0].split(/[\\/]/).pop();
+    const what = files.length > 1 ? `${files.length} pictures` : name;
+    const act = e.status === "pending" ? `<button class="btn-quiet" type="button" data-rm="${esc(e.id)}">Remove</button>`
+      : e.status === "posting" ? `<button class="btn-quiet" type="button" data-rm="${esc(e.id)}">Stop</button>` : "";
+    const sub = e.note || (e.post.caption || "").split("\n")[0] || "no description";
+    return `<div class="slot"><time>${hm(e.at)}</time><div class="what"><b>@${esc(e.post.account)}, ${esc(what)}${e.post.draft ? ", draft" : ""}</b><small title="${esc(sub)}">${esc(sub)}</small></div><div class="st ${e.status}">${STATUS[e.status] || e.status}${act}</div></div>`;
+  }).join("")}</div>`).join(""));
+}
+
+/* Buttons anywhere on the page. */
 document.addEventListener("click", async (ev) => {
-  const b = ev.target.closest("button[data-act], button[data-rm], button[data-cancel]");
+  const b = ev.target.closest("button[data-act], button[data-stop], button[data-rm]");
   if (!b) return;
   b.disabled = true;
   try {
-    if (b.dataset.cancel) { await api(`/api/jobs/${b.dataset.cancel}/cancel`, { method: "POST" }); await jobs(); }
-    else if (b.dataset.rm) { await api("/api/queue/" + b.dataset.rm, { method: "DELETE" }); await queue(); }
-    else { await api(`/api/phones/${encodeURIComponent(b.dataset.serial)}/${b.dataset.act}`, { method: "POST" }); lastPhones = ""; setTimeout(phones, 500); jobs(); }
-  } catch (e) { alert(e.message); } finally { b.disabled = false; }
+    if (b.dataset.stop) { await api(`/api/jobs/${b.dataset.stop}/cancel`, { method: "POST" }); toast("Stopping at the next step"); }
+    else if (b.dataset.rm) { const r = await api(`/api/queue/${encodeURIComponent(b.dataset.rm)}`, { method: "DELETE" }); toast(r.cancelling != null ? "Stopping it" : "Removed from the plan"); }
+    else {
+      const serial = b.closest(".phone").dataset.serial;
+      const act = b.dataset.act === "power" ? b.dataset.to : b.dataset.act;
+      await api(`/api/phones/${encodeURIComponent(serial)}/${act}`, { method: "POST" });
+      if (act === "check") toast("Opening TikTok to read the account");
+    }
+  } catch (e) { toast(e.message, true); b.disabled = false; }
 });
 
-$("#post").addEventListener("input", () => { $("#submit").textContent = $("#post").at.value ? "Plan it" : "Post now"; });
-$("#post").addEventListener("submit", async (ev) => {
-  ev.preventDefault();
-  const f = ev.target, btn = $("#submit");
-  const body = {
-    account: f.account.value, visibility: f.visibility.value, caption: f.caption.value, draft: f.draft.checked,
-    files: f.files.value.split("\n").map((s) => s.trim()).filter(Boolean),
-    sound: f.sound.value || null, at: f.at.value ? new Date(f.at.value).toISOString() : null,
+/* New post. Files dropped here are uploaded at once, so Post only has to send paths. */
+const form = $("#composer"), cap = form.caption;
+const files = []; // { name, path, progress, row }
+function renderFiles() {
+  $("#files").replaceChildren(...files.map((f, i) => {
+    const row = h("div", "file");
+    row.innerHTML = `<span class="n">${i + 1}</span><span title="${esc(f.path || f.name)}">${esc(f.name)}</span><button type="button" aria-label="Remove ${esc(f.name)}">×</button>${f.path ? "" : `<div class="bar"><i style="width:${f.progress}%"></i></div>`}`;
+    $("button", row).onclick = () => { f.xhr?.abort(); files.splice(files.indexOf(f), 1); renderFiles(); };
+    f.row = row; return row;
+  }));
+  updateGo();
+}
+function upload(file) {
+  const f = { name: file.name, path: null, progress: 0 };
+  const x = (f.xhr = new XMLHttpRequest());
+  files.push(f); renderFiles();
+  const drop = (msg) => { const i = files.indexOf(f); if (i >= 0) { files.splice(i, 1); renderFiles(); } if (msg) toast(msg, true); };
+  x.open("POST", `/api/uploads?name=${encodeURIComponent(file.name)}`);
+  x.upload.onprogress = (e) => { if (e.lengthComputable) { f.progress = (e.loaded / e.total) * 100; const bar = $(".bar i", f.row); if (bar) bar.style.width = f.progress + "%"; } };
+  x.onload = () => {
+    let body = {}; try { body = JSON.parse(x.responseText); } catch (_) {}
+    if (x.status < 300) { f.path = body.path; delete f.xhr; renderFiles(); } else drop(body.error || "The upload failed");
   };
-  btn.disabled = true;
-  try {
-    const r = await api(body.at ? "/api/queue" : "/api/posts", { method: "POST", body: JSON.stringify(body) });
-    $("#form-note").textContent = body.at ? "Planned for " + at(r.at) : "On its way: see Activity";
-    jobs(); queue();
-  } catch (e) { $("#form-note").textContent = e.message; } finally { btn.disabled = false; }
+  x.onerror = () => drop("The upload failed: is hive still running?");
+  x.send(file);
+}
+const dropZone = $("#drop"), picker = $("#picker");
+dropZone.onclick = () => picker.click();
+dropZone.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); picker.click(); } };
+picker.onchange = () => { [...picker.files].forEach(upload); picker.value = ""; };
+let depth = 0;
+dropZone.addEventListener("dragenter", (e) => { e.preventDefault(); depth++; dropZone.classList.add("over"); });
+dropZone.addEventListener("dragover", (e) => e.preventDefault());
+dropZone.addEventListener("dragleave", () => { if (--depth <= 0) { depth = 0; dropZone.classList.remove("over"); } });
+dropZone.addEventListener("drop", (e) => { e.preventDefault(); depth = 0; dropZone.classList.remove("over"); [...e.dataTransfer.files].forEach(upload); });
+// a file dropped next to the zone shouldn't open in the tab and lose the form
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer?.files.length) [...e.dataTransfer.files].forEach(upload); });
+$("#add-path").onclick = () => {
+  const p = $("#path").value.trim().replace(/^["']|["']$/g, "");
+  if (!p) return;
+  files.push({ name: p.split(/[\\/]/).pop(), path: p }); $("#path").value = ""; renderFiles();
+};
+$("#path").onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); $("#add-path").click(); } };
+
+cap.oninput = () => {
+  const n = [...cap.value].length, tags = (cap.value.match(/#[^\s#]+/g) || []).length;
+  const c = $("#count");
+  c.textContent = `${tags ? `${tags} hashtag${tags === 1 ? "" : "s"}, ` : ""}${n} / 2200`;
+  c.classList.toggle("over", n > 2200);
+  updateGo();
+};
+form.addEventListener("change", (e) => {
+  if (e.target.name === "when") {
+    const later = form.when.value === "later";
+    $("#at").hidden = !later;
+    if (later && !$("#at").value) {
+      const d = new Date(Date.now() + 3600e3); d.setMinutes(0, 0, 0);
+      $("#at").value = new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+    }
+  }
+  updateGo();
 });
-
-// live screens: load the next picture off-screen, then swap it in
-setInterval(() => document.querySelectorAll(".handset img[data-serial]").forEach((img) => {
-  if (img.dataset.busy || document.hidden) return;
-  img.dataset.busy = 1;
-  const next = new Image();
-  next.onload = () => { img.src = next.src; delete img.dataset.busy; };
-  next.onerror = () => delete img.dataset.busy;
-  next.src = `/api/phones/${encodeURIComponent(img.dataset.serial)}/screen.png?t=${Date.now()}`;
-}), 2000);
-
-phones(); jobs(); queue();
-setInterval(phones, 3000); setInterval(jobs, 1500); setInterval(queue, 5000);
+form.account.oninput = () => updateGo();
+let sending = false;
+function updateGo(keepHint) {
+  const later = form.when.value === "later", draft = form.draft.checked;
+  const go = $("#go");
+  setText(go, later ? (draft ? "Plan the draft" : "Plan it") : draft ? "Prepare the draft" : "Post now");
+  const uploading = files.some((f) => !f.path);
+  const missing = !files.length ? "Add a video or pictures." : !form.account.value.trim() ? "Say which account it goes on." : "";
+  go.disabled = sending || uploading || !!missing || [...cap.value].length > 2200;
+  if (!keepHint) hint(uploading ? "Uploading…" : missing, "");
+}
+function hint(msg, kind) { const e = $("#hint"); e.textContent = msg; e.className = "hint" + (kind ? " " + kind : ""); }
+form.onsubmit = async (ev) => {
+  ev.preventDefault();
+  if ($("#go").disabled) return;
+  const later = form.when.value === "later";
+  if (later && !$("#at").value) { hint("Pick when to post it.", "bad"); return; }
+  const body = {
+    account: form.account.value.trim(), files: files.map((f) => f.path), caption: cap.value,
+    visibility: form.visibility.value, draft: form.draft.checked, sound: form.sound.value.trim() || null,
+    at: later ? new Date($("#at").value).toISOString() : null,
+  };
+  sending = true; updateGo(true);
+  try {
+    const r = await api(later ? "/api/queue" : "/api/posts", { method: "POST", body: JSON.stringify(body) });
+    files.length = 0; cap.value = ""; form.sound.value = "";
+    sending = false; renderFiles(); cap.oninput();
+    const msg = later ? `Planned for ${dayName(r.at).toLowerCase()} at ${hm(r.at)}.` : body.draft ? "Preparing the draft: follow it in Activity." : "On its way: follow it in Activity.";
+    hint(msg, "good"); toast(msg);
+  } catch (e) { sending = false; updateGo(true); hint(e.message, "bad"); }
+};
+cap.oninput();
+loop();
 </script>
 </body>
 </html>
