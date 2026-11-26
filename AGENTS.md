@@ -20,7 +20,7 @@ screen, and TikTok's app driven step by step like a person would.
 - `hive/` (the `hive` binary): the CLI (`main.rs`), one post end to end on the right phone with
   per-phone locks (`engine.rs`), the queue (`queue.rs`), `hive serve`'s API, scheduler and
   dashboard (`serve.rs`, `dashboard.html`), and `hive mcp` (`mcp.rs`).
-- `assets/`: README images. Their HTML sources aren't in the repo; regenerate at 2× (2720 px wide).
+- `assets/`: README images, rendered at 2× (2720 px wide) in the palette of `DESIGN.md`.
 
 Crates depend inwards only: `core` ← `adb` ← `uia2`, `core` ← `tiktok`, and the binary on all.
 `tiktok` never depends on `adb` or `uia2`: it only sees the ports, so it runs against fakes.
@@ -46,8 +46,9 @@ Crates depend inwards only: `core` ← `adb` ← `uia2`, `core` ← `tiktok`, an
   ("allow USB debugging on the phone's screen"), no stack traces in user output.
 - `unsafe` is forbidden (workspace lint). Prefer the standard library; ask before adding a
   dependency with a large tree.
-- `dashboard.html` is one file with no build step and no external requests. Colours and type
-  follow the README banner: black, red `#ff2d55`, cyan `#22d3ff`.
+- `dashboard.html` is one file with no build step and no external requests. Colours, type and
+  rules for every surface are in [DESIGN.md](DESIGN.md); what Hive is for, who it's for and the
+  constraints it keeps are in [PRODUCT.md](PRODUCT.md). Read both before changing what people see.
 - Comments say why, not what; keep them sparse and match the surrounding style.
 
 ## Issues & PRs
