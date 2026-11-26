@@ -1,1 +1,240 @@
-<!doctype html><title>hive</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hive</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4l24 14v28L32 60 8 46V18z' fill='%23ff2d55'/%3E%3Cpath d='M32 4l24 14v28L32 60z' fill='%2322d3ff'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --black: #000; --bg: #07070a; --panel: #0e0e13; --panel-2: #15151c; --line: #22222c; --line-2: #2e2e3a;
+    --text: #ececf1; --muted: #8b8b99; --red: #ff2d55; --cyan: #22d3ff; --blue: #4f8cff; --amber: #ffd23f;
+    --grad: linear-gradient(90deg, var(--red), #a066d8 55%, var(--cyan));
+    --ui: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--black); color: var(--text); font: 15px/1.5 var(--ui); min-height: 100vh;
+         background-image: radial-gradient(60rem 30rem at -10% -10%, rgba(255,45,85,.10), transparent 60%),
+                           radial-gradient(60rem 30rem at 110% 0%, rgba(34,211,255,.08), transparent 60%); }
+  main { max-width: 1320px; margin: 0 auto; padding: 32px 32px 80px; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+  .mark { width: 30px; height: 30px; }
+  h1 { margin: 0; font-size: 30px; letter-spacing: -0.03em; font-weight: 800; background: var(--grad);
+       -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .status { color: var(--muted); margin-left: 6px; }
+  h2 { font-size: 15px; font-weight: 650; margin: 0 0 14px; color: var(--text); }
+  h2 small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  .btn { border: 1px solid var(--line-2); background: var(--panel-2); padding: 6px 12px; white-space: nowrap; border-radius: 999px; font-weight: 600; font-size: 14px; }
+  .btn:hover { border-color: var(--cyan); }
+  .btn.primary { border: 0; background: var(--grad); color: #050507; }
+  .btn:disabled { opacity: .45; cursor: progress; }
+  .muted { color: var(--muted); }
+
+  .phones { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; margin-bottom: 34px; }
+  .phone { display: grid; grid-template-columns: 112px 1fr; gap: 18px; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; }
+  .phone.ready { border-color: rgba(34,211,255,.35); }
+  .phone.blocked { border-color: rgba(255,45,85,.4); }
+  .handset { aspect-ratio: 9 / 19.5; border-radius: 18px; border: 1px solid var(--line-2); background: #000; overflow: hidden; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+  .handset img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .phone h3 { margin: 0; font-size: 17px; letter-spacing: -0.01em; }
+  .serial { font: 12px var(--mono); color: var(--muted); }
+  .state { margin: 8px 0 10px; font-weight: 600; font-size: 14px; }
+  .ready .state { color: var(--cyan); }
+  .blocked .state { color: var(--red); }
+  .busy .state { color: var(--amber); }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0 0 12px; font-size: 13px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 18px; align-items: start; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; }
+  form { display: grid; gap: 12px; }
+  label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
+  input, select, textarea { background: var(--bg); border: 1px solid var(--line-2); border-radius: 10px; padding: 9px 11px; width: 100%; }
+  input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(34,211,255,.15); }
+  textarea { resize: vertical; min-height: 84px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .check { display: flex; align-items: center; gap: 8px; color: var(--text); }
+  .check input { width: auto; accent-color: var(--red); }
+
+  .jobs { display: grid; gap: 12px; }
+  .job { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .job header { margin: 0; padding: 9px 12px; gap: 10px; background: var(--panel-2); font-size: 14px; }
+  .job header b { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tag { font: 12px var(--mono); padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
+  .running .tag { color: var(--amber); }
+  .done .tag { color: var(--cyan); }
+  .failed .tag { color: var(--red); }
+  pre { margin: 0; padding: 10px 12px; max-height: 220px; overflow: auto; font: 12px/1.6 var(--mono); color: #b9b9c6; white-space: pre-wrap; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 13px; }
+  td.when { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  .s-pending, .s-posting { color: var(--amber); } .s-posted { color: var(--cyan); } .s-failed, .s-skipped { color: var(--red); } .s-on_phone { color: var(--blue); }
+  .empty { color: var(--muted); padding: 6px 0; }
+  .queue { margin-top: 22px; overflow-x: auto; }
+  td .btn { padding: 3px 10px; font-size: 13px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } main { padding: 20px 16px 60px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4l24 14v28L32 60 8 46V18z" fill="#ff2d55"/><path d="M32 4l24 14v28L32 60z" fill="#22d3ff"/><path d="M32 4v56" stroke="#000" stroke-width="3"/></svg>
+    <h1>hive</h1>
+    <span class="status" id="status">Reading the phones…</span>
+  </header>
+
+  <section>
+    <h2>Phones <small>plug one in with USB debugging on</small></h2>
+    <div class="phones" id="phones"></div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>New post</h2>
+      <form id="post">
+        <div class="row">
+          <label>Account <input name="account" placeholder="@account" required></label>
+          <label>Who can see it
+            <select name="visibility"><option value="everyone">Everyone</option><option value="friends">Friends</option><option value="only_you">Only you</option></select>
+          </label>
+        </div>
+        <label>Files on this computer, one per line <textarea name="files" placeholder="/home/you/clips/clip.mp4&#10;or several pictures for a slideshow" required></textarea></label>
+        <label>Description <textarea name="caption" placeholder="What it's about #hashtags"></textarea></label>
+        <div class="row">
+          <label>Sound to search (optional) <input name="sound" placeholder="leave empty for none"></label>
+          <label>Plan for (optional) <input type="datetime-local" name="at"></label>
+        </div>
+        <label class="check"><input type="checkbox" name="draft"> Draft: fill everything in, leave Post to me</label>
+        <div class="actions"><button class="btn primary" type="submit" id="submit">Post now</button><span class="muted" id="form-note"></span></div>
+      </form>
+      <div class="queue">
+        <h2>Planned</h2>
+        <div id="queue"></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>Activity</h2>
+      <div class="jobs" id="jobs"><p class="empty">Nothing yet.</p></div>
+    </section>
+  </div>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const api = async (path, opts = {}) => {
+  const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error || r.statusText);
+  return body;
+};
+const at = (t) => new Date(t).toLocaleString([], { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+function phoneCard(v) {
+  const p = v.phone ?? v, s = v.status || {};
+  const cls = v.busy ? "busy" : v.blocker ? "blocked" : "ready";
+  const state = v.busy ? "Posting right now" : v.blocker ? v.blocker[0].toUpperCase() + v.blocker.slice(1) : "Ready to post";
+  const lock = s.lock?.secure === true ? "code (hive can't open it)" : s.lock?.secure === false ? "no code" : "unknown";
+  const seen = Object.keys(v.notes?.accounts || {}).map((h) => "@" + h).join(", ") || "none yet";
+  const screen = s.awake ? `<img data-serial="${esc(v.serial)}" src="/api/phones/${encodeURIComponent(v.serial)}/screen.png?t=${Date.now()}" alt="">` : (v.state === "device" ? "asleep" : "no access");
+  return `<article class="phone ${cls}">
+    <div class="handset">${screen}</div>
+    <div>
+      <h3>${esc(v.model || v.serial)}</h3>
+      <div class="serial">${esc(v.serial)}${s.android ? ", Android " + esc(s.android) : ""}</div>
+      <div class="state">${esc(state)}</div>
+      ${v.state === "device" ? `<dl>
+        <dt>Battery</dt><dd>${s.battery ?? "?"}%${s.charging ? ", charging" : ""}</dd>
+        <dt>Lock</dt><dd>${lock}</dd>
+        <dt>TikTok</dt><dd>${s.tiktok ? (v.notes?.current ? "on @" + esc(v.notes.current) : "installed") : "missing"}</dd>
+        <dt>Accounts</dt><dd>${esc(seen)}</dd>
+        ${v.bound?.length ? `<dt>Posts for</dt><dd>${v.bound.map((h) => "@" + esc(h)).join(", ")}</dd>` : ""}
+        ${v.notes?.last_post ? `<dt>Last post</dt><dd>${esc(v.notes.last_post.replace("T", " ").slice(0, 16) + v.notes.last_post.slice(v.notes.last_post.indexOf(" @")))}</dd>` : ""}
+      </dl>
+      <div class="actions">
+        <button class="btn" data-act="check" data-serial="${esc(v.serial)}" ${v.busy ? "disabled" : ""}>Read its account</button>
+        <button class="btn" data-act="${s.awake ? "sleep" : "wake"}" data-serial="${esc(v.serial)}">${s.awake ? "Screen off" : "Screen on"}</button>
+      </div>` : ""}
+    </div></article>`;
+}
+
+let lastPhones = "";
+async function phones() {
+  try {
+    const list = await api("/api/phones");
+    const key = JSON.stringify(list.map((v) => [v.serial, v.state, v.blocker, v.busy, v.status?.awake, v.status?.battery, v.notes]));
+    if (key !== lastPhones) {
+      lastPhones = key;
+      $("#phones").innerHTML = list.length ? list.map(phoneCard).join("") : '<p class="empty">No phone plugged in. Turn on USB debugging (Developer options), plug it in and allow this computer.</p>';
+    }
+    const ready = list.filter((v) => !v.blocker && !v.busy).length;
+    $("#status").textContent = `${list.length} phone${list.length === 1 ? "" : "s"}, ${ready} ready`;
+  } catch (e) { $("#status").textContent = "hive isn't answering: " + e.message; }
+}
+
+async function jobs() {
+  const list = await api("/api/jobs").catch(() => []);
+  $("#jobs").innerHTML = list.length ? list.slice(0, 8).map((j) => `<div class="job ${j.state}">
+      <header><b>${esc(j.label)}</b><span class="tag">${j.state}</span></header>
+      <pre>${esc(j.lines.join("\n") || "starting…")}</pre></div>`).join("") : '<p class="empty">Nothing yet.</p>';
+}
+
+async function queue() {
+  const list = (await api("/api/queue").catch(() => [])).filter((e) => e.status !== "posted" || Date.now() - new Date(e.done_at) < 864e5);
+  $("#queue").innerHTML = list.length ? `<table><tr><th>When</th><th>Account</th><th>What</th><th>Status</th><th></th></tr>${list.map((e) => {
+    const f = (e.post.media.file || e.post.media.images?.[0] || "").split("/").pop();
+    return `<tr><td class="when">${at(e.at)}</td><td>@${esc(e.post.account)}</td><td>${esc(f)}${e.post.media.images ? ` +${e.post.media.images.length - 1}` : ""}<div class="muted">${esc(e.note)}</div></td>
+      <td class="s-${e.status}">${e.status.replace("_", " ")}</td><td>${e.status === "pending" ? `<button class="btn" data-rm="${esc(e.id)}">Remove</button>` : ""}</td></tr>`;
+  }).join("")}</table>` : '<p class="empty">Nothing planned.</p>';
+}
+
+document.addEventListener("click", async (ev) => {
+  const b = ev.target.closest("button[data-act], button[data-rm]");
+  if (!b) return;
+  b.disabled = true;
+  try {
+    if (b.dataset.rm) { await api("/api/queue/" + b.dataset.rm, { method: "DELETE" }); await queue(); }
+    else { await api(`/api/phones/${encodeURIComponent(b.dataset.serial)}/${b.dataset.act}`, { method: "POST" }); lastPhones = ""; setTimeout(phones, 500); jobs(); }
+  } catch (e) { alert(e.message); } finally { b.disabled = false; }
+});
+
+$("#post").addEventListener("input", () => { $("#submit").textContent = $("#post").at.value ? "Plan it" : "Post now"; });
+$("#post").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const f = ev.target, btn = $("#submit");
+  const body = {
+    account: f.account.value, visibility: f.visibility.value, caption: f.caption.value, draft: f.draft.checked,
+    files: f.files.value.split("\n").map((s) => s.trim()).filter(Boolean),
+    sound: f.sound.value || null, at: f.at.value ? new Date(f.at.value).toISOString() : null,
+  };
+  btn.disabled = true;
+  try {
+    const r = await api(body.at ? "/api/queue" : "/api/posts", { method: "POST", body: JSON.stringify(body) });
+    $("#form-note").textContent = body.at ? "Planned for " + at(r.at) : "On its way: see Activity";
+    jobs(); queue();
+  } catch (e) { $("#form-note").textContent = e.message; } finally { btn.disabled = false; }
+});
+
+// live screens: load the next picture off-screen, then swap it in
+setInterval(() => document.querySelectorAll(".handset img[data-serial]").forEach((img) => {
+  if (img.dataset.busy || document.hidden) return;
+  img.dataset.busy = 1;
+  const next = new Image();
+  next.onload = () => { img.src = next.src; delete img.dataset.busy; };
+  next.onerror = () => delete img.dataset.busy;
+  next.src = `/api/phones/${encodeURIComponent(img.dataset.serial)}/screen.png?t=${Date.now()}`;
+}), 2000);
+
+phones(); jobs(); queue();
+setInterval(phones, 3000); setInterval(jobs, 1500); setInterval(queue, 5000);
+</script>
+</body>
+</html>
