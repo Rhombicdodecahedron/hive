@@ -2,6 +2,7 @@
 
 mod engine;
 mod home;
+mod mcp;
 mod queue;
 mod serve;
 
@@ -106,6 +107,8 @@ enum Command {
     Connect { address: String },
     /// Where hive keeps its config and data.
     Paths,
+    /// Serve Hive's tools over MCP (stdio), for Claude and other MCP clients.
+    Mcp,
 }
 
 #[derive(Subcommand)]
@@ -299,6 +302,7 @@ fn run(cli: Cli) -> Result<()> {
             }
         }
         Command::Serve { address, reload } => serve::serve(Hive::open()?, address, reload)?,
+        Command::Mcp => mcp::run()?,
         Command::Bind { account, phone } => {
             let home = home::Home::locate()?;
             let mut config = home.config()?;
