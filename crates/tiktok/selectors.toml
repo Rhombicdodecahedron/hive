@@ -1,0 +1,87 @@
+# What hive knows about TikTok's Android app: the words, descriptions and resource ids on its
+# screens, as UiAutomator selectors. This is the only place with TikTok specifics. When the app
+# changes, copy the part that broke into ~/.config/hive/tiktok.toml (only the keys you change),
+# fix it from `hive screen --xml` (every text, content-desc and id on the screen), and say so
+# in an issue so everyone gets the fix.
+#
+# Read off TikTok 47.x on Android 15 and 16, with the app in English. Most of TikTok's resource
+# ids are obfuscated and change with each version (`id/l34`), so they are only used where they
+# read as words (`id/upload_hot_area`).
+
+package = "com.zhiliaoapp.musically"
+
+[profile]
+tab = 'new UiSelector().description("Profile")'
+# The "@handle" under the account's name; only there when the profile is scrolled to the top.
+account_label = 'new UiSelector().className("android.widget.Button").textStartsWith("@")'
+# The account's name just above the "@handle" opens "Switch account".
+named_button = 'new UiSelector().className("android.widget.Button").clickable(true)'
+switch_sheet = 'new UiSelector().text("Switch account")'
+# An account in "Switch account": its content-desc is the handle. {handle} is filled in.
+account_choice = 'new UiSelector().descriptionMatches("(?i)@?{handle}")'
+
+[picker]
+create = 'new UiSelector().description("Create")'
+# The gallery thumbnail beside the camera's shutter.
+gallery = 'new UiSelector().resourceIdMatches(".*:id/upload_hot_area")'
+videos_tab = 'new UiSelector().text("Videos")'
+photos_tab = 'new UiSelector().text("Photos")'
+# The picker's grid is the biggest list on the screen; its children are the cells, newest first.
+grids = [
+  'new UiSelector().className("android.widget.GridView")',
+  'new UiSelector().className("androidx.recyclerview.widget.RecyclerView")',
+]
+# Each cell's selection circle: a tap on the picture itself opens a preview. Once picked, the
+# circle reads its place in the post: "1", "2"…
+pick_circle = 'new UiSelector().className("android.widget.Button")'
+# TikTok reopens the picker with the last post's picks; this unselects them all.
+clear_picks = 'new UiSelector().text("Clear last selection")'
+# "Next (3)" once something is picked. A plain "Next" is the camera's, behind the picker.
+next = 'new UiSelector().textStartsWith("Next (")'
+
+[editor]
+# The sound at the top; a tap opens the sounds sheet.
+sound_pill = 'new UiSelector().resourceIdMatches(".*:id/tv_top_text")'
+next = 'new UiSelector().text("Next")'
+# The sounds sheet's tabs; its search is the unlabelled icon right of the last one.
+sound_tab = 'new UiSelector().text("Recent")'
+icon_button = 'new UiSelector().className("android.widget.ImageView").clickable(true)'
+sound_search = 'new UiSelector().className("android.widget.EditText")'
+sound_search_go = 'new UiSelector().className("android.widget.Button").text("Search")'
+# The results have no text: a row per sound in the biggest list, after a strip of "Videos with
+# related sounds" (a list of its own). The row's ✓ ("use this sound") is on its right.
+results_list = 'new UiSelector().className("androidx.recyclerview.widget.RecyclerView").scrollable(true)'
+nested_list = 'new UiSelector().className("androidx.recyclerview.widget.RecyclerView")'
+use_spot = [0.87, 0.5]
+
+[post_screen]
+post = 'new UiSelector().className("android.widget.Button").text("Post")'
+title = [
+  'new UiSelector().className("android.widget.EditText").textStartsWith("Add a catchy title")',
+]
+caption = [
+  'new UiSelector().className("android.widget.EditText").textStartsWith("Writing a long description")',
+  'new UiSelector().className("android.widget.EditText").textStartsWith("Add description")',
+  'new UiSelector().className("android.widget.EditText").instance(1)',
+  'new UiSelector().className("android.widget.EditText")',
+]
+# "Everyone can view this post": a tap opens "Who can view this post", which stays up after a
+# choice. The names, in hive's order: everyone, friends, only you.
+visibility_row = 'new UiSelector().textMatches("(Everyone|Friends|Only you) can view this post")'
+visibility_sheet = 'new UiSelector().text("Who can view this post")'
+visibility_names = ["Everyone", "Friends", "Only you"]
+
+[timeouts]  # seconds
+launch = 20.0     # the app opens, a tab or screen shows up
+switch = 15.0     # the app reloads on another account
+gallery = 20.0    # the picker lists the pushed files
+editor = 90.0     # TikTok takes the media and shows the editor (videos take longer)
+field = 5.0       # a box or button on a screen already open
+sound = 10.0      # the sounds sheet opens, a search finds something
+posted = 120.0    # the post screen goes away once Post is tapped
+
+[pauses]  # milliseconds between two steps, picked at random: a person isn't a metronome
+min = 500
+max = 1500
+pick_min = 150
+pick_max = 400
