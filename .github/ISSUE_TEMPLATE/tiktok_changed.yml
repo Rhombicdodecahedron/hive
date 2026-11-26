@@ -1,0 +1,44 @@
+name: TikTok changed
+description: A step stops because TikTok's app no longer shows what Hive looks for
+labels: [selectors]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        TikTok updates its app often, and a renamed button is what breaks first. The fix is
+        usually one line in `crates/tiktok/selectors.toml`, and the screen's XML is what it takes
+        to write it. Fixed it yourself? See "Fixing a selector" in CONTRIBUTING.md and open a PR.
+  - type: input
+    id: versions
+    attributes:
+      label: TikTok and Android versions
+      description: Settings › Apps › TikTok on the phone, and the phone's Android version.
+      placeholder: TikTok 48.1.2, Android 16, Pixel 8
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Is TikTok in English on the phone?
+      options:
+        - "Yes"
+        - "No (Hive needs English: please switch and retry first)"
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: What Hive said
+      description: The output of the command, especially the line that says what wasn't there.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: xml
+    attributes:
+      label: The screen's XML
+      description: |
+        Run `hive screen --xml` with the phone on the screen where Hive stopped, and attach
+        `screen.xml`. Search it for your handles, names and messages and remove them first.
+    validations:
+      required: true
