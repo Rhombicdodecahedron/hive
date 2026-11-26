@@ -1,0 +1,30 @@
+[package]
+name = "hive"
+description = "Plug Android phones in, and they post your videos and slideshows to TikTok."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+readme = "../README.md"
+keywords = ["tiktok", "android", "adb", "automation", "uiautomator"]
+categories = ["command-line-utilities"]
+
+[lints]
+workspace = true
+
+[dependencies]
+hive-core.workspace = true
+hive-adb.workspace = true
+hive-uia2.workspace = true
+hive-tiktok.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+ureq.workspace = true
+clap.workspace = true
+tiny_http.workspace = true
+jiff.workspace = true
+anyhow.workspace = true
+dirs.workspace = true
