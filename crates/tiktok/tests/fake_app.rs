@@ -18,7 +18,7 @@ enum Screen {
     Camera,
     Picker,
     Editor,
-    PostScreen,
+    Posting,
     Done,
 }
 
@@ -118,14 +118,14 @@ impl Ui for FakeTikTok {
             Picker if s.contains("Next (") && !self.picked.is_empty() => ids(&["next_picker"]),
             Editor if s.contains("tv_top_text") => ids(&["pill"]),
             Editor if s.contains("text(\"Next\")") => ids(&["editor_next"]),
-            PostScreen if s.contains("text(\"Post\")") => ids(&["post"]),
-            PostScreen if s.contains("Add a catchy title") => ids(&["title"]),
-            PostScreen if s.contains("Writing a long description") => ids(&["caption"]),
-            PostScreen if s.contains("can view this post\")") && s.contains("textMatches") => {
+            Posting if s.contains("text(\"Post\")") => ids(&["post"]),
+            Posting if s.contains("Add a catchy title") => ids(&["title"]),
+            Posting if s.contains("Writing a long description") => ids(&["caption"]),
+            Posting if s.contains("can view this post\")") && s.contains("textMatches") => {
                 ids(&["vis_row"])
             }
-            PostScreen if self.sheet && s.contains("Who can view this post") => ids(&["vis_sheet"]),
-            PostScreen if self.sheet && s.contains("text(\"Friends\")") => ids(&["vis:Friends"]),
+            Posting if self.sheet && s.contains("Who can view this post") => ids(&["vis_sheet"]),
+            Posting if self.sheet && s.contains("text(\"Friends\")") => ids(&["vis:Friends"]),
             _ if s.contains("index(0)") => ids(&["root"]),
             _ => vec![],
         };
@@ -193,7 +193,7 @@ impl Ui for FakeTikTok {
             "create" => self.screen = Camera,
             "gallery" => self.screen = Picker,
             "next_picker" => self.screen = Editor,
-            "editor_next" => self.screen = PostScreen,
+            "editor_next" => self.screen = Posting,
             "vis_row" => self.sheet = true,
             "vis:Friends" => self.visibility = "Friends".into(),
             "post" => {
@@ -385,5 +385,5 @@ fn a_draft_stops_before_post() {
         .unwrap();
     assert!(!report.posted && !ui.posted);
     assert_eq!(ui.picked, [0]);
-    assert_eq!(ui.screen, Screen::PostScreen);
+    assert_eq!(ui.screen, Screen::Posting);
 }
