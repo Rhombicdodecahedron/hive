@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hive</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4l24 14v28L32 60 8 46V18z' fill='%23ff2d55'/%3E%3Cpath d='M32 4l24 14v28L32 60z' fill='%2322d3ff'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4l24 14v28L32 60 8 46V18z' fill='%23ffc444'/%3E%3Cpath d='M32 4l24 14v28L32 60z' fill='%23ff7a3d'/%3E%3C/svg%3E">
 <style>
   :root {
-    --black: #000; --bg: #07070a; --panel: #0e0e13; --panel-2: #15151c; --line: #22222c; --line-2: #2e2e3a;
-    --text: #ececf1; --muted: #8b8b99; --red: #ff2d55; --cyan: #22d3ff; --blue: #4f8cff; --amber: #ffd23f;
-    --grad: linear-gradient(90deg, var(--red), #a066d8 55%, var(--cyan));
+    --black: #0b0906; --bg: #0e0b07; --panel: #17130c; --panel-2: #1f1a11; --line: #2b2417; --line-2: #3a3122;
+    --text: #f7efdf; --muted: #b3a891; --faint: #766d5b; --honey: #ffc444; --ember: #ff7a3d; --clover: #9bd67f;
+    --grad: linear-gradient(90deg, #ffd25e, #ffa63d 55%, #ff7a3d);
     --ui: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
     --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
     color-scheme: dark;
@@ -17,8 +17,8 @@
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
   body { margin: 0; background: var(--black); color: var(--text); font: 15px/1.5 var(--ui); min-height: 100vh;
-         background-image: radial-gradient(60rem 30rem at -10% -10%, rgba(255,45,85,.10), transparent 60%),
-                           radial-gradient(60rem 30rem at 110% 0%, rgba(34,211,255,.08), transparent 60%); }
+         background-image: radial-gradient(60rem 30rem at -10% -10%, rgba(255,178,31,.10), transparent 60%),
+                           radial-gradient(60rem 30rem at 110% 0%, rgba(255,122,61,.08), transparent 60%); }
   main { max-width: 1320px; margin: 0 auto; padding: 32px 32px 80px; }
   header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
   .mark { width: 30px; height: 30px; }
@@ -30,23 +30,23 @@
   button, input, select, textarea { font: inherit; color: inherit; }
   button { cursor: pointer; }
   .btn { border: 1px solid var(--line-2); background: var(--panel-2); padding: 6px 12px; white-space: nowrap; border-radius: 999px; font-weight: 600; font-size: 14px; }
-  .btn:hover { border-color: var(--cyan); }
-  .btn.primary { border: 0; background: var(--grad); color: #050507; }
+  .btn:hover { border-color: var(--honey); }
+  .btn.primary { border: 0; background: var(--grad); color: #1a1006; }
   .btn:disabled { opacity: .45; cursor: progress; }
   .muted { color: var(--muted); }
 
   .phones { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; margin-bottom: 34px; }
   .phone { display: grid; grid-template-columns: 112px 1fr; gap: 18px; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; }
-  .phone.ready { border-color: rgba(34,211,255,.35); }
-  .phone.blocked { border-color: rgba(255,45,85,.4); }
+  .phone.ready { border-color: rgba(155,214,127,.35); }
+  .phone.blocked { border-color: rgba(255,122,61,.45); }
   .handset { aspect-ratio: 9 / 19.5; border-radius: 18px; border: 1px solid var(--line-2); background: #000; overflow: hidden; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
   .handset img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .phone h3 { margin: 0; font-size: 17px; letter-spacing: -0.01em; }
   .serial { font: 12px var(--mono); color: var(--muted); }
   .state { margin: 8px 0 10px; font-weight: 600; font-size: 14px; }
-  .ready .state { color: var(--cyan); }
-  .blocked .state { color: var(--red); }
-  .busy .state { color: var(--amber); }
+  .ready .state { color: var(--clover); }
+  .blocked .state { color: var(--ember); }
+  .busy .state { color: var(--honey); }
   dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0 0 12px; font-size: 13px; }
   dt { color: var(--muted); }
   dd { margin: 0; }
@@ -57,29 +57,29 @@
   form { display: grid; gap: 12px; }
   label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
   input, select, textarea { background: var(--bg); border: 1px solid var(--line-2); border-radius: 10px; padding: 9px 11px; width: 100%; }
-  input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(34,211,255,.15); }
+  input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: none; border-color: var(--honey); box-shadow: 0 0 0 3px rgba(255,196,68,.15); }
   textarea { resize: vertical; min-height: 84px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .check { display: flex; align-items: center; gap: 8px; color: var(--text); }
-  .check input { width: auto; accent-color: var(--red); }
+  .check input { width: auto; accent-color: var(--honey); }
 
   .jobs { display: grid; gap: 12px; }
   .job { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .job header { margin: 0; padding: 9px 12px; gap: 10px; background: var(--panel-2); font-size: 14px; }
   .job header b { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tag { font: 12px var(--mono); padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
-  .running .tag { color: var(--amber); }
-  .done .tag { color: var(--cyan); }
-  .failed .tag { color: var(--red); }
+  .running .tag { color: var(--honey); }
+  .done .tag { color: var(--clover); }
+  .failed .tag { color: var(--ember); }
   .cancelled .tag { color: var(--muted); }
   .job header .btn { padding: 2px 10px; font-size: 12px; }
-  pre { margin: 0; padding: 10px 12px; max-height: 220px; overflow: auto; font: 12px/1.6 var(--mono); color: #b9b9c6; white-space: pre-wrap; }
+  pre { margin: 0; padding: 10px 12px; max-height: 220px; overflow: auto; font: 12px/1.6 var(--mono); color: #d8cdb6; white-space: pre-wrap; }
 
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
   th { color: var(--muted); font-weight: 500; font-size: 13px; }
   td.when { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
-  .s-pending, .s-posting { color: var(--amber); } .s-posted { color: var(--cyan); } .s-failed, .s-skipped { color: var(--red); } .s-on_phone { color: var(--blue); }
+  .s-pending, .s-posting { color: var(--honey); } .s-posted { color: var(--clover); } .s-failed { color: var(--ember); } .s-skipped { color: var(--faint); } .s-on_phone { color: var(--text); }
   .empty { color: var(--muted); padding: 6px 0; }
   .queue { margin-top: 22px; overflow-x: auto; }
   td .btn { padding: 3px 10px; font-size: 13px; }
@@ -89,7 +89,7 @@
 <body>
 <main>
   <header>
-    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4l24 14v28L32 60 8 46V18z" fill="#ff2d55"/><path d="M32 4l24 14v28L32 60z" fill="#22d3ff"/><path d="M32 4v56" stroke="#000" stroke-width="3"/></svg>
+    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4l24 14v28L32 60 8 46V18z" fill="#ffc444"/><path d="M32 4l24 14v28L32 60z" fill="#ff7a3d"/><path d="M32 4v56" stroke="#0e0b07" stroke-width="3"/></svg>
     <h1>hive</h1>
     <span class="status" id="status">Reading the phones…</span>
   </header>
