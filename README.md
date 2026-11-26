@@ -9,6 +9,7 @@
   &nbsp;·&nbsp; <a href="#post">Post</a>
   &nbsp;·&nbsp; <a href="#several-phones">Several phones</a>
   &nbsp;·&nbsp; <a href="#plan-posts">Plan posts</a>
+  &nbsp;·&nbsp; <a href="#claude-and-other-mcp-clients">MCP</a>
   &nbsp;·&nbsp; <a href="#when-tiktok-changes">When TikTok changes</a>
 </p>
 
@@ -134,6 +135,29 @@ the planned posts and what each post did, and a JSON API for your own tools:
 
 `hive serve` listens on 127.0.0.1 only: anyone who can reach it can post on your
 accounts.
+
+## Claude and other MCP clients
+
+`hive mcp` serves Hive's tools over MCP, so an assistant can see your phones, post, plan
+posts and follow them. It starts `hive serve` by itself when it isn't running.
+
+```sh
+claude mcp add hive -- hive mcp          # Claude Code
+```
+
+For Claude Desktop, add it to `claude_desktop_config.json`:
+
+```json
+{ "mcpServers": { "hive": { "command": "hive", "args": ["mcp"] } } }
+```
+
+| Tool | What it does |
+| --- | --- |
+| `hive_phones` | The phones, whether each can post, and the accounts seen on them |
+| `hive_post` | Post a video or a slideshow now; returns a job |
+| `hive_job` | Follow a job until it's done, line by line |
+| `hive_plan`, `hive_queue`, `hive_cancel` | Plan posts, list them, remove one |
+| `hive_check` | Read the account TikTok is on, on one phone |
 
 ## When TikTok changes
 
