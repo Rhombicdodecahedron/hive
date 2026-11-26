@@ -130,6 +130,8 @@ the planned posts and what each post did, and a JSON API for your own tools:
 | Endpoint | What it does |
 | --- | --- |
 | `GET /api/phones` | Phones, their state and the accounts seen on them |
+| `GET /api/state?since={rev}&wait=25` | Everything the dashboard shows; with `since`, answers as soon as something changes |
+| `POST /api/uploads?name={file}` | Upload a video or picture (raw body); answers its `path` for a post |
 | `POST /api/posts` | Post now: `{"account", "files", "caption", "visibility", "draft"}` → a job |
 | `POST /api/queue` | Plan a post: the same, plus `"at"` |
 | `GET /api/jobs/{id}` | What a post did, line by line, and its result |

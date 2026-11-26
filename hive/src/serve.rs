@@ -15,7 +15,7 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
@@ -65,6 +65,9 @@ struct State {
     phones: RwLock<Vec<PhoneView>>,
     wake_phones: Mutex<Option<Instant>>,
     retry_at: Mutex<HashMap<String, Instant>>,
+    /// Goes up on every change the dashboard shows; `/api/state?since=` waits on it.
+    rev: Mutex<u64>,
+    changed: Condvar,
 }
 
 type Shared = Arc<State>;
@@ -141,12 +144,15 @@ impl State {
             jobs.insert(0, job.clone());
             jobs.truncate(KEEP_JOBS);
         }
+        self.bump();
         let me = self.clone();
         thread::spawn(move || {
             let log = job.clone();
+            let notify = me.clone();
             let mut say = move |line: &str| {
                 let stamp = jiff::Zoned::now().strftime("%H:%M:%S").to_string();
                 log.lock().unwrap().lines.push(format!("{stamp}  {line}"));
+                notify.bump();
             };
             let cancel = job.lock().unwrap().cancel.clone();
             let outcome = work(&me, &cancel, &mut say);
@@ -171,9 +177,75 @@ impl State {
                 }
             }
             drop(j);
+            me.bump();
             me.refresh_phones_soon();
         });
         id
+    }
+
+    fn bump(&self) {
+        *self.rev.lock().unwrap() += 1;
+        self.changed.notify_all();
+    }
+
+    /// Everything the dashboard shows, in one answer.
+    fn snapshot(&self) -> Result<Value> {
+        let phones = self.phones.read().unwrap().clone();
+        let jobs: Vec<Value> = self
+            .jobs
+            .lock()
+            .unwrap()
+            .iter()
+            .take(12)
+            .map(|j| {
+                let mut j = j.lock().unwrap().clone();
+                let keep = j.lines.len().saturating_sub(80);
+                j.lines.drain(..keep);
+                serde_json::to_value(j).unwrap_or_default()
+            })
+            .collect();
+        let day_ago = now_ts() - jiff::SignedDuration::from_hours(24);
+        let queue: Vec<Entry> = Queue::new(&self.hive.home)
+            .entries()?
+            .into_iter()
+            .filter(|e| match e.status {
+                Status::Posted | Status::Skipped => e.done_at.unwrap_or(e.at) > day_ago,
+                _ => true,
+            })
+            .collect();
+        let mut accounts: Vec<String> = self
+            .hive
+            .config()?
+            .accounts
+            .keys()
+            .map(|h| h.to_string())
+            .collect();
+        for p in &phones {
+            accounts.extend(p.notes.accounts.keys().map(|h| h.to_string()));
+        }
+        accounts.sort();
+        accounts.dedup();
+        Ok(json!({
+            "rev": *self.rev.lock().unwrap(),
+            "phones": phones,
+            "jobs": jobs,
+            "queue": queue,
+            "accounts": accounts,
+            "version": env!("CARGO_PKG_VERSION"),
+        }))
+    }
+
+    /// Wait until something changed after `since` (or `wait` ran out).
+    fn wait_change(&self, since: u64, wait: Duration) {
+        let deadline = Instant::now() + wait;
+        let mut rev = self.rev.lock().unwrap();
+        while *rev <= since {
+            let left = deadline.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                break;
+            }
+            rev = self.changed.wait_timeout(rev, left).unwrap().0;
+        }
     }
 
     /// Stop a running job at its next step. False when there is no such running job.
@@ -189,6 +261,9 @@ impl State {
         j.cancel.cancel();
         j.cancelled = true;
         j.lines.push("cancelling at the next step…".into());
+        drop(j);
+        drop(jobs);
+        self.bump();
         true
     }
 
@@ -367,12 +442,28 @@ fn scheduler(state: Shared) {
 
 /// Read the phones every few seconds (sooner after a job), so the API never waits on adb.
 fn watcher(state: Shared) {
+    let queue_file = state.hive.home.queue_file();
+    let stamp = || {
+        std::fs::metadata(&queue_file)
+            .and_then(|m| m.modified())
+            .ok()
+    };
+    let mut queue_seen = stamp();
     loop {
         if let Ok(phones) = state.hive.phones() {
-            *state.phones.write().unwrap() = phones;
+            let changed = serde_json::to_string(&phones).ok()
+                != serde_json::to_string(&*state.phones.read().unwrap()).ok();
+            if changed {
+                *state.phones.write().unwrap() = phones;
+                state.bump();
+            }
         }
         let until = Instant::now() + Duration::from_secs(4);
         while Instant::now() < until {
+            if stamp() != queue_seen {
+                queue_seen = stamp();
+                state.bump();
+            }
             if state.wake_phones.lock().unwrap().take().is_some() {
                 break;
             }
@@ -421,19 +512,126 @@ fn serial(raw: &str) -> Result<Serial> {
     Ok(Serial::new(raw)?)
 }
 
+fn query<'a>(url: &'a str, key: &str) -> Option<&'a str> {
+    url.split_once('?')?.1.split('&').find_map(|kv| {
+        let (k, v) = kv.split_once('=')?;
+        (k == key).then_some(v)
+    })
+}
+
+fn decode(raw: &str) -> String {
+    let bytes = raw.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'%' if i + 2 < bytes.len() => {
+                let hex = std::str::from_utf8(&bytes[i + 1..i + 3]).ok();
+                if let Some(b) = hex.and_then(|h| u8::from_str_radix(h, 16).ok()) {
+                    out.push(b);
+                    i += 3;
+                    continue;
+                }
+                out.push(b'%');
+            }
+            b'+' => out.push(b' '),
+            b => out.push(b),
+        }
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Files dropped on the dashboard, kept a week.
+fn uploads_dir(home: &crate::home::Home) -> PathBuf {
+    home.data_dir.join("uploads")
+}
+
+fn clean_uploads(home: &crate::home::Home) {
+    let week = Duration::from_secs(7 * 24 * 3600);
+    if let Ok(dir) = std::fs::read_dir(uploads_dir(home)) {
+        for f in dir.flatten() {
+            let old = f
+                .metadata()
+                .and_then(|m| m.modified())
+                .ok()
+                .and_then(|t| t.elapsed().ok());
+            if old.is_some_and(|age| age > week) {
+                let _ = std::fs::remove_file(f.path());
+            }
+        }
+    }
+}
+
+fn save_upload(state: &Shared, req: &mut Request, name: &str) -> Result<Value> {
+    let clean: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || ".-_".contains(c) {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect();
+    let ext_ok = Media::from_files(vec![PathBuf::from(&clean)]).is_ok();
+    if clean.is_empty() || !ext_ok {
+        return Err(anyhow!(Error::Invalid(format!(
+            "not a video or a picture: {name}"
+        ))));
+    }
+    let dir = uploads_dir(&state.hive.home);
+    std::fs::create_dir_all(&dir)?;
+    let path = dir.join(format!(
+        "{}-{clean}",
+        jiff::Zoned::now().strftime("%Y%m%d-%H%M%S%.3f")
+    ));
+    let mut file = std::fs::File::create(&path)?;
+    std::io::copy(req.as_reader(), &mut file)?;
+    Ok(json!({"path": path, "name": name}))
+}
+
 fn handle(state: &Shared, mut req: Request) {
     let method = req.method().clone();
-    let url = req.url().split('?').next().unwrap_or("/").to_owned();
+    let full = req.url().to_owned();
+    let url = full.split('?').next().unwrap_or("/").to_owned();
     let parts: Vec<&str> = url.trim_matches('/').split('/').collect();
-    let mut body = String::new();
-    let _ = req.as_reader().read_to_string(&mut body);
 
     if method == Method::Get && (url == "/" || url == "/index.html") {
         let r = Response::from_string(DASHBOARD)
-            .with_header(Header::from_bytes("Content-Type", "text/html; charset=utf-8").unwrap());
+            .with_header(Header::from_bytes("Content-Type", "text/html; charset=utf-8").unwrap())
+            .with_header(Header::from_bytes("Cache-Control", "no-cache").unwrap());
         let _ = req.respond(r);
         return;
     }
+    if method == Method::Get && url == "/api/state" {
+        let since: u64 = query(&full, "since")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0);
+        let wait = query(&full, "wait")
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(0u64)
+            .min(30);
+        if since > 0 {
+            state.wait_change(since, Duration::from_secs(wait));
+        }
+        let _ = req.respond(match state.snapshot() {
+            Ok(v) => json_response(200, &v),
+            Err(e) => error(500, format!("{e:#}")),
+        });
+        return;
+    }
+    if method == Method::Post && url == "/api/uploads" {
+        let name = decode(query(&full, "name").unwrap_or(""));
+        let res = save_upload(state, &mut req, &name);
+        let _ = req.respond(match res {
+            Ok(v) => json_response(201, &v),
+            Err(e) => error(400, format!("{e:#}")),
+        });
+        return;
+    }
+    let mut body = String::new();
+    let _ = req.as_reader().read_to_string(&mut body);
     if method == Method::Get
         && parts.len() == 4
         && parts[..2] == ["api", "phones"]
@@ -599,7 +797,10 @@ pub fn serve(hive: Hive, address: Option<String>, reload: bool) -> Result<()> {
         next_id: Mutex::new(0),
         wake_phones: Mutex::new(None),
         retry_at: Mutex::new(HashMap::new()),
+        rev: Mutex::new(1),
+        changed: Condvar::new(),
     });
+    clean_uploads(&state.hive.home);
     {
         let s = state.clone();
         thread::spawn(move || watcher(s));
