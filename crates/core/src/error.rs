@@ -16,7 +16,11 @@ pub enum Error {
     #[error("no phone can post for @{handle}: {why}")]
     NoPhone { handle: Handle, why: String },
     #[error("@{handle} isn't logged in to TikTok on {serial} (TikTok is on {current})")]
-    NotOnPhone { handle: Handle, serial: Serial, current: String },
+    NotOnPhone {
+        handle: Handle,
+        serial: Serial,
+        current: String,
+    },
     #[error("the phone's UI server: {0}")]
     Ui(String),
     #[error("TikTok: {0}")]
@@ -31,6 +35,9 @@ impl Error {
     /// Whether waiting (for a phone to come back, to be unlocked, to be free) could fix it, as
     /// opposed to something wrong with the post or the app that a retry won't change.
     pub fn is_waiting(&self) -> bool {
-        matches!(self, Error::PhoneGone(_) | Error::PhoneBlocked { .. } | Error::NoPhone { .. })
+        matches!(
+            self,
+            Error::PhoneGone(_) | Error::PhoneBlocked { .. } | Error::NoPhone { .. }
+        )
     }
 }

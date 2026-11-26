@@ -13,8 +13,13 @@ impl Handle {
     pub fn new(raw: &str) -> Result<Self, Error> {
         let h = raw.trim().trim_start_matches('@').to_lowercase();
         let ok = (2..=24).contains(&h.len())
-            && h.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_');
-        if ok { Ok(Self(h)) } else { Err(Error::Invalid(format!("not a TikTok handle: {raw:?}"))) }
+            && h.chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_');
+        if ok {
+            Ok(Self(h))
+        } else {
+            Err(Error::Invalid(format!("not a TikTok handle: {raw:?}")))
+        }
     }
 
     pub fn as_str(&self) -> &str {
@@ -54,8 +59,14 @@ mod tests {
 
     #[test]
     fn handles_compare_like_tiktok() {
-        assert_eq!(Handle::new("@MomentsDeGTA6").unwrap().as_str(), "momentsdegta6");
-        assert_eq!(Handle::new(" gta6.clips_fr ").unwrap().as_str(), "gta6.clips_fr");
+        assert_eq!(
+            Handle::new("@MomentsDeGTA6").unwrap().as_str(),
+            "momentsdegta6"
+        );
+        assert_eq!(
+            Handle::new(" gta6.clips_fr ").unwrap().as_str(),
+            "gta6.clips_fr"
+        );
         assert!(Handle::new("a").is_err());
         assert!(Handle::new("bad handle").is_err());
     }

@@ -66,7 +66,11 @@ pub mod keycode {
 /// A live UI session on one phone (UiAutomator2). Everything the TikTok flows need.
 pub trait Ui {
     /// Every element `selector` finds, under `within` when given.
-    fn find_all(&mut self, selector: &Selector, within: Option<&ElementId>) -> Result<Vec<ElementId>>;
+    fn find_all(
+        &mut self,
+        selector: &Selector,
+        within: Option<&ElementId>,
+    ) -> Result<Vec<ElementId>>;
     fn text(&mut self, el: &ElementId) -> Result<String>;
     fn rect(&mut self, el: &ElementId) -> Result<Rect>;
     fn click(&mut self, el: &ElementId) -> Result<()>;

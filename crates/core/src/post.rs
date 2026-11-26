@@ -20,16 +20,25 @@ impl Media {
         const VIDEO: [&str; 5] = ["mp4", "mov", "m4v", "webm", "mkv"];
         const IMAGE: [&str; 5] = ["jpg", "jpeg", "png", "webp", "heic"];
         let ext = |p: &PathBuf| {
-            p.extension().and_then(|e| e.to_str()).map(str::to_lowercase).unwrap_or_default()
+            p.extension()
+                .and_then(|e| e.to_str())
+                .map(str::to_lowercase)
+                .unwrap_or_default()
         };
         match files.as_slice() {
-            [] => Err(Error::Invalid("nothing to post: give a video or pictures".into())),
+            [] => Err(Error::Invalid(
+                "nothing to post: give a video or pictures".into(),
+            )),
             [one] if VIDEO.contains(&ext(one).as_str()) => Ok(Media::Video { file: one.clone() }),
             many if many.iter().all(|f| IMAGE.contains(&ext(f).as_str())) => {
                 if many.len() > 35 {
-                    Err(Error::Invalid("TikTok takes at most 35 pictures in a post".into()))
+                    Err(Error::Invalid(
+                        "TikTok takes at most 35 pictures in a post".into(),
+                    ))
                 } else {
-                    Ok(Media::Slideshow { images: many.to_vec() })
+                    Ok(Media::Slideshow {
+                        images: many.to_vec(),
+                    })
                 }
             }
             _ => Err(Error::Invalid(
@@ -67,7 +76,9 @@ impl std::str::FromStr for Visibility {
             "everyone" | "public" => Ok(Visibility::Everyone),
             "friends" => Ok(Visibility::Friends),
             "only_you" | "private" | "me" => Ok(Visibility::OnlyYou),
-            _ => Err(Error::Invalid(format!("visibility: everyone, friends or only-you, not {s:?}"))),
+            _ => Err(Error::Invalid(format!(
+                "visibility: everyone, friends or only-you, not {s:?}"
+            ))),
         }
     }
 }

@@ -14,8 +14,8 @@ pub use error::{Error, Result};
 pub use handle::Handle;
 pub use memory::{PhoneMemory, PhoneNotes};
 pub use phone::{
-    Blocker, LOW_BATTERY, Lock, Phone, STATUS_SCRIPT, Serial, Status, TIKTOK_PACKAGES, parse_devices,
-    parse_lock, parse_status,
+    Blocker, LOW_BATTERY, Lock, Phone, STATUS_SCRIPT, Serial, Status, TIKTOK_PACKAGES,
+    parse_devices, parse_lock, parse_status,
 };
 pub use post::{Media, Post, PostReport, Visibility};
 pub use route::{Choice, choose_phones};

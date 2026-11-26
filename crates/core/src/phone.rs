@@ -13,8 +13,14 @@ impl Serial {
     pub fn new(raw: &str) -> Result<Self, Error> {
         let ok = !raw.is_empty()
             && raw.len() <= 64
-            && raw.chars().all(|c| c.is_ascii_alphanumeric() || "._:-".contains(c));
-        if ok { Ok(Self(raw.to_owned())) } else { Err(Error::Invalid(format!("not a phone serial: {raw:?}"))) }
+            && raw
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || "._:-".contains(c));
+        if ok {
+            Ok(Self(raw.to_owned()))
+        } else {
+            Err(Error::Invalid(format!("not a phone serial: {raw:?}")))
+        }
     }
 
     pub fn as_str(&self) -> &str {
@@ -122,7 +128,11 @@ pub const LOW_BATTERY: u8 = 15;
 
 impl Phone {
     pub fn label(&self) -> &str {
-        if self.model.is_empty() { self.serial.as_str() } else { &self.model }
+        if self.model.is_empty() {
+            self.serial.as_str()
+        } else {
+            &self.model
+        }
     }
 
     pub fn blocker(&self) -> Option<Blocker> {
@@ -130,7 +140,11 @@ impl Phone {
             "device" => {}
             "unauthorized" => return Some(Blocker::Unauthorized),
             "offline" => return Some(Blocker::Offline),
-            other => return Some(Blocker::AdbState { state: other.to_owned() }),
+            other => {
+                return Some(Blocker::AdbState {
+                    state: other.to_owned(),
+                });
+            }
         }
         let s = self.status.as_ref()?;
         if s.tiktok.is_none() {
@@ -161,7 +175,12 @@ pub fn parse_devices(out: &str) -> Vec<Phone> {
                 .find_map(|p| p.strip_prefix("model:"))
                 .unwrap_or("")
                 .replace('_', " ");
-            Some(Phone { serial, state, model, status: None })
+            Some(Phone {
+                serial,
+                state,
+                model,
+                status: None,
+            })
         })
         .collect()
 }
@@ -210,8 +229,18 @@ pub fn parse_lock(policy: &str, disabled: &str) -> Lock {
 pub fn parse_status(out: &str) -> Status {
     let mut parts: Vec<&str> = out.split("@@").collect();
     parts.resize(8, "");
-    let [android, battery, power, policy, focus, paths, disabled, server] =
-        [parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7]];
+    let [
+        android,
+        battery,
+        power,
+        policy,
+        focus,
+        paths,
+        disabled,
+        server,
+    ] = [
+        parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7],
+    ];
     let level = battery
         .lines()
         .find_map(|l| l.trim().strip_prefix("level:"))
@@ -226,7 +255,11 @@ pub fn parse_status(out: &str) -> Status {
         .map(|v| v.trim_start().starts_with("Awake"));
     let tiktok = TIKTOK_PACKAGES
         .iter()
-        .find(|p| paths.lines().any(|l| l.starts_with("package:") && l.contains(*p)))
+        .find(|p| {
+            paths
+                .lines()
+                .any(|l| l.starts_with("package:") && l.contains(*p))
+        })
         .map(|p| (*p).to_owned());
     Status {
         android: android.trim().to_owned(),
@@ -270,7 +303,13 @@ mod tests {
         assert_eq!(s.battery, Some(98));
         assert!(s.charging);
         assert_eq!(s.awake, Some(false));
-        assert_eq!(s.lock, Lock { showing: Some(true), secure: Some(false) });
+        assert_eq!(
+            s.lock,
+            Lock {
+                showing: Some(true),
+                secure: Some(false)
+            }
+        );
         assert_eq!(s.tiktok.as_deref(), Some("com.zhiliaoapp.musically"));
         assert!(!s.in_tiktok);
         assert!(s.ui_server);
@@ -291,7 +330,10 @@ mod tests {
             model: String::new(),
             status: Some(Status {
                 tiktok: Some("com.zhiliaoapp.musically".into()),
-                lock: Lock { showing: Some(true), secure: Some(true) },
+                lock: Lock {
+                    showing: Some(true),
+                    secure: Some(true),
+                },
                 ..Status::default()
             }),
         };

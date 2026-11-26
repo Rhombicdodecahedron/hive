@@ -46,7 +46,10 @@ pub fn choose_phones(
         let charging = p.status.as_ref().is_some_and(|s| s.charging);
         (Some(&p.serial) != bound, !seen, missing, !charging)
     });
-    Choice { phones: usable.into_iter().map(|p| p.serial.clone()).collect(), skipped }
+    Choice {
+        phones: usable.into_iter().map(|p| p.serial.clone()).collect(),
+        skipped,
+    }
 }
 
 #[cfg(test)]
@@ -62,7 +65,10 @@ mod tests {
             status: Some(Status {
                 tiktok: Some("com.zhiliaoapp.musically".into()),
                 charging,
-                lock: Lock { showing: Some(true), secure: Some(secure) },
+                lock: Lock {
+                    showing: Some(true),
+                    secure: Some(secure),
+                },
                 ..Status::default()
             }),
         }
@@ -71,7 +77,11 @@ mod tests {
     #[test]
     fn bound_phone_then_known_then_the_rest() {
         let h = Handle::new("acc").unwrap();
-        let phones = [phone("A", true, false), phone("B", true, false), phone("C", false, false)];
+        let phones = [
+            phone("A", true, false),
+            phone("B", true, false),
+            phone("C", false, false),
+        ];
         let mut mem = PhoneMemory::default();
         mem.has(&Serial::new("C").unwrap(), &h, "t");
         mem.lacks(&Serial::new("A").unwrap(), &h, None, "t");
@@ -87,8 +97,13 @@ mod tests {
     fn blocked_and_busy_phones_say_why() {
         let h = Handle::new("acc").unwrap();
         let phones = [phone("A", true, true), phone("B", true, false)];
-        let c = choose_phones(&h, &phones, Some(&Serial::new("Z").unwrap()), &PhoneMemory::default(),
-                              &[Serial::new("B").unwrap()]);
+        let c = choose_phones(
+            &h,
+            &phones,
+            Some(&Serial::new("Z").unwrap()),
+            &PhoneMemory::default(),
+            &[Serial::new("B").unwrap()],
+        );
         assert!(c.phones.is_empty());
         assert_eq!(c.skipped.len(), 3);
         assert!(c.skipped[0].contains("isn't plugged in"));
