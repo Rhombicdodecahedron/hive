@@ -27,6 +27,8 @@ pub enum Error {
     App(String),
     #[error("{0}")]
     Invalid(String),
+    #[error("cancelled before Post was tapped: nothing was posted")]
+    Cancelled,
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }

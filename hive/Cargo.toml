@@ -28,3 +28,4 @@ tiny_http.workspace = true
 jiff.workspace = true
 anyhow.workspace = true
 dirs.workspace = true
+ctrlc.workspace = true

@@ -26,6 +26,7 @@ tiny_http = "0.12"
 jiff = { version = "0.2", features = ["serde"] }
 anyhow = "1"
 dirs = "6"
+ctrlc = "3"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

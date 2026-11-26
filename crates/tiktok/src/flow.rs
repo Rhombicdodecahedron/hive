@@ -2,8 +2,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use hive_core::{
-    Device, Direction, ElementId, Error, Handle, Media, Post, PostReport, Rect, Result, Selector,
-    Ui, Visibility, keycode,
+    Cancel, Device, Direction, ElementId, Error, Handle, Media, Post, PostReport, Rect, Result,
+    Selector, Ui, Visibility, keycode,
 };
 use rand::Rng;
 
@@ -24,6 +24,7 @@ pub struct TikTok<'a, U: Ui, D: Device> {
     dev: &'a D,
     app: &'a App,
     say: &'a mut dyn FnMut(&str),
+    cancel: Cancel,
 }
 
 fn sel(s: &str) -> Selector {
@@ -54,7 +55,19 @@ const VISIBILITY_FIX: &str = "choose who can see the post yourself";
 
 impl<'a, U: Ui, D: Device> TikTok<'a, U, D> {
     pub fn new(ui: &'a mut U, dev: &'a D, app: &'a App, say: &'a mut dyn FnMut(&str)) -> Self {
-        Self { ui, dev, app, say }
+        Self {
+            ui,
+            dev,
+            app,
+            say,
+            cancel: Cancel::new(),
+        }
+    }
+
+    /// Stop at the next step once `cancel` is cancelled (never after Post is tapped).
+    pub fn with_cancel(mut self, cancel: Cancel) -> Self {
+        self.cancel = cancel;
+        self
     }
 
     // --- looking and tapping ----------------------------------------------------------------
@@ -74,6 +87,7 @@ impl<'a, U: Ui, D: Device> TikTok<'a, U, D> {
     fn find(&mut self, selectors: &[Selector], timeout: f64) -> Result<Option<ElementId>> {
         let deadline = Instant::now() + App::secs(timeout);
         loop {
+            self.cancel.check()?;
             for s in selectors {
                 if let Some(e) = self.ui.find_all(s, None)?.into_iter().next() {
                     return Ok(Some(e));
@@ -92,6 +106,7 @@ impl<'a, U: Ui, D: Device> TikTok<'a, U, D> {
 
     fn tap(&mut self, el: &ElementId) -> Result<()> {
         self.pause();
+        self.cancel.check()?;
         self.ui.click(el)
     }
 
@@ -101,6 +116,7 @@ impl<'a, U: Ui, D: Device> TikTok<'a, U, D> {
         } else {
             self.pause();
         }
+        self.cancel.check()?;
         self.ui.tap(x, y)
     }
 
@@ -698,7 +714,7 @@ impl<'a, U: Ui, D: Device> TikTok<'a, U, D> {
 
     /// Sound, Next, title, description and who can see it. A step that fails is a problem for a
     /// person to finish; once the phone stops answering, the rest is skipped.
-    fn fill_editor(&mut self, report: &mut PostReport, post: &Post) {
+    fn fill_editor(&mut self, report: &mut PostReport, post: &Post) -> Result<()> {
         let (t, e, ps) = (
             self.app.timeouts.clone(),
             self.app.editor.clone(),
@@ -790,17 +806,21 @@ impl<'a, U: Ui, D: Device> TikTok<'a, U, D> {
 
         for (what, step) in steps {
             if let Err(err) = step(self, report) {
+                if matches!(err, Error::Cancelled) {
+                    return Err(err);
+                }
                 if !self.ui.is_alive() {
                     report
                         .problems
                         .push(format!("the phone stopped answering: {}", first_line(&err)));
-                    return;
+                    return Ok(());
                 }
                 report
                     .problems
                     .push(format!("couldn't {what} ({})", first_line(&err)));
             }
         }
+        Ok(())
     }
 
     /// Tap Post, only when nothing is left for a person to finish. Posted once the post screen
@@ -856,16 +876,19 @@ impl<'a, U: Ui, D: Device> TikTok<'a, U, D> {
             return Ok(report);
         }
         (self.say)("filling the post in");
-        self.fill_editor(&mut report, post);
+        self.fill_editor(&mut report, post)?;
         if post.draft {
             report.notes.push("draft: Post left for you to tap".into());
         } else {
+            self.cancel.check()?;
             (self.say)("posting");
-            if let Err(e) = self.post_step(&mut report) {
-                report.problems.push(format!(
+            match self.post_step(&mut report) {
+                Err(Error::Cancelled) => return Err(Error::Cancelled),
+                Err(e) => report.problems.push(format!(
                     "couldn't tap Post ({}): check the phone",
                     first_line(&e)
-                ));
+                )),
+                Ok(()) => {}
             }
         }
         Ok(report)

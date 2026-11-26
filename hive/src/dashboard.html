@@ -71,6 +71,8 @@
   .running .tag { color: var(--amber); }
   .done .tag { color: var(--cyan); }
   .failed .tag { color: var(--red); }
+  .cancelled .tag { color: var(--muted); }
+  .job header .btn { padding: 2px 10px; font-size: 12px; }
   pre { margin: 0; padding: 10px 12px; max-height: 220px; overflow: auto; font: 12px/1.6 var(--mono); color: #b9b9c6; white-space: pre-wrap; }
 
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -183,7 +185,7 @@ async function phones() {
 async function jobs() {
   const list = await api("/api/jobs").catch(() => []);
   $("#jobs").innerHTML = list.length ? list.slice(0, 8).map((j) => `<div class="job ${j.state}">
-      <header><b>${esc(j.label)}</b><span class="tag">${j.state}</span></header>
+      <header><b>${esc(j.label)}</b>${j.state === "running" && j.kind === "post" && !j.cancelled ? `<button class="btn" data-cancel="${j.id}">Cancel</button>` : ""}<span class="tag">${j.cancelled && j.state === "running" ? "cancelling" : j.state}</span></header>
       <pre>${esc(j.lines.join("\n") || "starting…")}</pre></div>`).join("") : '<p class="empty">Nothing yet.</p>';
 }
 
@@ -192,16 +194,17 @@ async function queue() {
   $("#queue").innerHTML = list.length ? `<table><tr><th>When</th><th>Account</th><th>What</th><th>Status</th><th></th></tr>${list.map((e) => {
     const f = (e.post.media.file || e.post.media.images?.[0] || "").split("/").pop();
     return `<tr><td class="when">${at(e.at)}</td><td>@${esc(e.post.account)}</td><td>${esc(f)}${e.post.media.images ? ` +${e.post.media.images.length - 1}` : ""}<div class="muted">${esc(e.note)}</div></td>
-      <td class="s-${e.status}">${e.status.replace("_", " ")}</td><td>${e.status === "pending" ? `<button class="btn" data-rm="${esc(e.id)}">Remove</button>` : ""}</td></tr>`;
+      <td class="s-${e.status}">${e.status.replace("_", " ")}</td><td>${e.status === "pending" ? `<button class="btn" data-rm="${esc(e.id)}">Remove</button>` : e.status === "posting" ? `<button class="btn" data-rm="${esc(e.id)}">Cancel</button>` : ""}</td></tr>`;
   }).join("")}</table>` : '<p class="empty">Nothing planned.</p>';
 }
 
 document.addEventListener("click", async (ev) => {
-  const b = ev.target.closest("button[data-act], button[data-rm]");
+  const b = ev.target.closest("button[data-act], button[data-rm], button[data-cancel]");
   if (!b) return;
   b.disabled = true;
   try {
-    if (b.dataset.rm) { await api("/api/queue/" + b.dataset.rm, { method: "DELETE" }); await queue(); }
+    if (b.dataset.cancel) { await api(`/api/jobs/${b.dataset.cancel}/cancel`, { method: "POST" }); await jobs(); }
+    else if (b.dataset.rm) { await api("/api/queue/" + b.dataset.rm, { method: "DELETE" }); await queue(); }
     else { await api(`/api/phones/${encodeURIComponent(b.dataset.serial)}/${b.dataset.act}`, { method: "POST" }); lastPhones = ""; setTimeout(phones, 500); jobs(); }
   } catch (e) { alert(e.message); } finally { b.disabled = false; }
 });

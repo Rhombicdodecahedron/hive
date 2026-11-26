@@ -387,3 +387,30 @@ fn a_draft_stops_before_post() {
     assert_eq!(ui.picked, [0]);
     assert_eq!(ui.screen, Screen::Posting);
 }
+
+#[test]
+fn a_cancelled_post_stops_before_post() {
+    let app = quick_app();
+    let mut ui = FakeTikTok::new("momentsdegta6", &["momentsdegta6"]);
+    let dev = device();
+    let cancel = hive_core::Cancel::new();
+    let stop = cancel.clone();
+    // cancel as soon as the flow says it is filling the post in
+    let mut say = move |s: &str| {
+        if s.starts_with("filling") {
+            stop.cancel();
+        }
+    };
+    let err = TikTok::new(&mut ui, &dev, &app, &mut say)
+        .with_cancel(cancel)
+        .publish(&post(
+            "momentsdegta6",
+            Media::Video {
+                file: "a.mp4".into(),
+            },
+        ))
+        .unwrap_err();
+    assert!(matches!(err, Error::Cancelled), "{err:?}");
+    assert!(!ui.posted);
+    assert_eq!(ui.picked, [0]);
+}

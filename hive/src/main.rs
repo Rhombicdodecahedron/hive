@@ -255,7 +255,17 @@ fn run(cli: Cli) -> Result<()> {
                 return Ok(());
             }
             println!("posting on @{}", post.account);
-            let done = hive.post(&post, phone.as_ref(), &mut say)?;
+            let cancel = hive_core::Cancel::new();
+            let on_stop = cancel.clone();
+            // first Ctrl+C: stop at the next step and clean the phone up; second: quit now
+            let _ = ctrlc::set_handler(move || {
+                if on_stop.is_cancelled() {
+                    std::process::exit(130);
+                }
+                eprintln!("\ncancelling at the next step (Ctrl+C again to quit now)");
+                on_stop.cancel();
+            });
+            let done = hive.post(&post, phone.as_ref(), &cancel, &mut say)?;
             for n in &done.report.notes {
                 say(n);
             }

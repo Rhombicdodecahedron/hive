@@ -20,7 +20,7 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
 use anyhow::{Context, Result, anyhow};
-use hive_core::{Error, Handle, Media, Post, Serial, Visibility};
+use hive_core::{Cancel, Error, Handle, Media, Post, Serial, Visibility};
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -38,6 +38,7 @@ enum JobState {
     Running,
     Done,
     Failed,
+    Cancelled,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -51,6 +52,10 @@ struct Job {
     result: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     queue_id: Option<String>,
+    /// Asked to stop: it stops at its next step, unless Post was already tapped.
+    cancelled: bool,
+    #[serde(skip)]
+    cancel: Cancel,
 }
 
 struct State {
@@ -112,7 +117,7 @@ impl State {
         kind: &'static str,
         label: String,
         queue_id: Option<String>,
-        work: impl FnOnce(&State, &mut dyn FnMut(&str)) -> Result<Value> + Send + 'static,
+        work: impl FnOnce(&State, &Cancel, &mut dyn FnMut(&str)) -> Result<Value> + Send + 'static,
     ) -> u64 {
         let id = {
             let mut n = self.next_id.lock().unwrap();
@@ -128,6 +133,8 @@ impl State {
             lines: vec![],
             result: None,
             queue_id,
+            cancelled: false,
+            cancel: Cancel::new(),
         }));
         {
             let mut jobs = self.jobs.lock().unwrap();
@@ -141,9 +148,18 @@ impl State {
                 let stamp = jiff::Zoned::now().strftime("%H:%M:%S").to_string();
                 log.lock().unwrap().lines.push(format!("{stamp}  {line}"));
             };
-            let outcome = work(&me, &mut say);
+            let cancel = job.lock().unwrap().cancel.clone();
+            let outcome = work(&me, &cancel, &mut say);
             let mut j = job.lock().unwrap();
             match outcome {
+                Err(e)
+                    if e.downcast_ref::<Error>()
+                        .is_some_and(|e| matches!(e, Error::Cancelled)) =>
+                {
+                    j.lines.push("cancelled: nothing was posted".into());
+                    j.state = JobState::Cancelled;
+                    j.result = Some(json!({"cancelled": true}));
+                }
                 Ok(v) => {
                     j.state = JobState::Done;
                     j.result = Some(v);
@@ -158,6 +174,30 @@ impl State {
             me.refresh_phones_soon();
         });
         id
+    }
+
+    /// Stop a running job at its next step. False when there is no such running job.
+    fn cancel_job(&self, id: u64) -> bool {
+        let jobs = self.jobs.lock().unwrap();
+        let Some(job) = jobs.iter().find(|j| j.lock().unwrap().id == id) else {
+            return false;
+        };
+        let mut j = job.lock().unwrap();
+        if j.state != JobState::Running {
+            return false;
+        }
+        j.cancel.cancel();
+        j.cancelled = true;
+        j.lines.push("cancelling at the next step…".into());
+        true
+    }
+
+    fn job_for_queue(&self, queue_id: &str) -> Option<u64> {
+        self.jobs.lock().unwrap().iter().find_map(|j| {
+            let j = j.lock().unwrap();
+            (j.state == JobState::Running && j.queue_id.as_deref() == Some(queue_id))
+                .then_some(j.id)
+        })
     }
 
     fn refresh_phones_soon(&self) {
@@ -197,8 +237,8 @@ fn run_entry(state: &Shared, entry: Entry) {
         Ok(())
     });
     let qid = id.clone();
-    state.start_job("post", label, Some(id), move |st, say| {
-        let outcome = st.hive.post(&entry.post, None, say);
+    state.start_job("post", label, Some(id), move |st, cancel, say| {
+        let outcome = st.hive.post(&entry.post, None, cancel, say);
         let queue = Queue::new(&st.hive.home);
         let mut retry = None;
         let result = queue.update(|es| {
@@ -216,6 +256,10 @@ fn run_entry(state: &Shared, entry: Entry) {
                     e.status = Status::OnPhone;
                     e.phone = Some(p.phone.to_string());
                     e.note = p.report.problems.join("; ");
+                }
+                Err(Error::Cancelled) => {
+                    e.status = Status::Skipped;
+                    e.note = "cancelled while posting: nothing was posted".into();
                 }
                 Err(err) if err.is_waiting() => {
                     e.status = Status::Pending;
@@ -447,7 +491,7 @@ fn route(state: &Shared, method: &Method, parts: &[&str], body: &str) -> Result<
                 }
                 "check" => {
                     let id =
-                        state.start_job("check", format!("check {s}"), None, move |st, say| {
+                        state.start_job("check", format!("check {s}"), None, move |st, _, say| {
                             let h = st.hive.check(&s, say)?;
                             say(&format!("TikTok is on @{h}"));
                             Ok(json!({"account": h}))
@@ -456,7 +500,7 @@ fn route(state: &Shared, method: &Method, parts: &[&str], body: &str) -> Result<
                 }
                 "setup" => {
                     let id =
-                        state.start_job("setup", format!("setup {s}"), None, move |st, say| {
+                        state.start_job("setup", format!("setup {s}"), None, move |st, _, say| {
                             let installed = st.hive.setup(&s)?;
                             say(if installed {
                                 "UI server installed"
@@ -475,8 +519,8 @@ fn route(state: &Shared, method: &Method, parts: &[&str], body: &str) -> Result<
             let post = req.post()?;
             let only = req.phone.as_deref().map(Serial::new).transpose()?;
             let label = format!("{} → @{}", post.media.files()[0].display(), post.account);
-            let id = state.start_job("post", label, None, move |st, say| {
-                let done = st.hive.post(&post, only.as_ref(), say)?;
+            let id = state.start_job("post", label, None, move |st, cancel, say| {
+                let done = st.hive.post(&post, only.as_ref(), cancel, say)?;
                 say(if done.report.posted {
                     "posted"
                 } else {
@@ -522,10 +566,25 @@ fn route(state: &Shared, method: &Method, parts: &[&str], body: &str) -> Result<
                 serde_json::to_value(Queue::new(&state.hive.home).add(req.post()?, at)?)?,
             )
         }
-        (Method::Delete, ["api", "queue", id]) => (
-            200,
-            serde_json::to_value(Queue::new(&state.hive.home).remove(id)?)?,
-        ),
+        (Method::Delete, ["api", "queue", id]) => match state.job_for_queue(id) {
+            // being posted right now: stop it; the job marks the entry skipped
+            Some(job) => {
+                state.cancel_job(job);
+                (202, json!({"cancelling": job}))
+            }
+            None => (
+                200,
+                serde_json::to_value(Queue::new(&state.hive.home).remove(id)?)?,
+            ),
+        },
+        (Method::Post, ["api", "jobs", id, "cancel"]) => {
+            let id: u64 = id.parse().unwrap_or(0);
+            if state.cancel_job(id) {
+                (202, json!({"cancelling": id}))
+            } else {
+                (409, json!({"error": "that job isn't running"}))
+            }
+        }
         _ => (404, json!({"error": "not found"})),
     })
 }

@@ -8,7 +8,7 @@ use std::time::{Duration, SystemTime};
 use anyhow::Result;
 use hive_adb::{Adb, AdbDevice, GalleryKind, open_up, push_to_gallery, remove_from_gallery, rest};
 use hive_core::{
-    Device, Error, Handle, Media, Phone, PhoneMemory, PhoneNotes, Post, PostReport, Serial,
+    Cancel, Device, Error, Handle, Media, Phone, PhoneMemory, PhoneNotes, Post, PostReport, Serial,
     choose_phones,
 };
 use hive_tiktok::{App, TikTok};
@@ -160,6 +160,7 @@ impl Hive {
         &self,
         post: &Post,
         only: Option<&Serial>,
+        cancel: &Cancel,
         say: &mut dyn FnMut(&str),
     ) -> Result<Posted, Error> {
         for f in post.media.files() {
@@ -190,6 +191,7 @@ impl Hive {
         );
         let mut skipped = choice.skipped;
         for serial in choice.phones {
+            cancel.check()?;
             let label = phones
                 .iter()
                 .find(|p| p.serial == serial)
@@ -210,7 +212,7 @@ impl Hive {
                 Err(e) => return Err(e),
             };
             self.remember(|m| m.set_model(&serial, &label));
-            match self.post_on(&dev, post, say) {
+            match self.post_on(&dev, post, cancel, say) {
                 Ok((report, pushed)) => {
                     if report.posted {
                         self.remember(|m| m.posted(&serial, &post.account, &now()));
@@ -240,6 +242,11 @@ impl Hive {
                     ));
                 }
                 Err((e, pushed)) => {
+                    if matches!(e, Error::Cancelled) {
+                        // drop the half-made post: TikTok reopens on its home screen
+                        let _ = dev.shell(&format!("am force-stop {}", self.app.package));
+                        say("cancelled: the half-made post was dropped, nothing was posted");
+                    }
                     remove_from_gallery(&dev, &pushed);
                     rest(&dev, &restore);
                     if matches!(e, Error::PhoneGone(_)) {
@@ -265,9 +272,11 @@ impl Hive {
         &self,
         dev: &AdbDevice,
         post: &Post,
+        cancel: &Cancel,
         say: &mut dyn FnMut(&str),
     ) -> Result<(PostReport, hive_adb::Pushed), (Error, hive_adb::Pushed)> {
         let none = hive_adb::Pushed::default();
+        cancel.check().map_err(|e| (e, none.clone()))?;
         match ensure_installed(dev, &self.home.apks_dir()) {
             Ok(true) => say("installed hive's UI server on the phone"),
             Ok(false) => {}
@@ -275,7 +284,7 @@ impl Hive {
         }
         say("starting the UI server");
         let mut session = Session::start(dev.clone()).map_err(|e| (e, none.clone()))?;
-        let mut tiktok = TikTok::new(&mut session, dev, &self.app, say);
+        let mut tiktok = TikTok::new(&mut session, dev, &self.app, say).with_cancel(cancel.clone());
         tiktok
             .open_on(&post.account)
             .map_err(|e| (e, none.clone()))?;
@@ -288,7 +297,10 @@ impl Hive {
             ),
         };
         let pushed = push_to_gallery(dev, kind, &files, &stamp).map_err(|e| (e, none.clone()))?;
-        let mut tiktok = TikTok::new(&mut session, dev, &self.app, say);
+        if let Err(e) = cancel.check() {
+            return Err((e, pushed));
+        }
+        let mut tiktok = TikTok::new(&mut session, dev, &self.app, say).with_cancel(cancel.clone());
         match tiktok.publish_here(post) {
             Ok(report) => Ok((report, pushed)),
             Err(e) => Err((e, pushed)),

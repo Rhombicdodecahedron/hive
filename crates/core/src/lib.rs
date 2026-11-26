@@ -2,6 +2,7 @@
 //! account, and the two ports the adapters implement: [`Device`] (adb) and [`Ui`] (a live
 //! UiAutomator session). Nothing in here touches a phone.
 
+mod cancel;
 mod error;
 mod handle;
 mod memory;
@@ -10,6 +11,7 @@ mod post;
 mod route;
 mod ui;
 
+pub use cancel::Cancel;
 pub use error::{Error, Result};
 pub use handle::Handle;
 pub use memory::{PhoneMemory, PhoneNotes};

@@ -122,8 +122,8 @@ fn tools() -> Value {
          "inputSchema": post_schema(true)},
         {"name": "hive_queue", "description": "The planned posts and what happened to them.",
          "inputSchema": {"type": "object", "properties": {}}},
-        {"name": "hive_cancel", "description": "Remove a planned post that hasn't gone out.",
-         "inputSchema": {"type": "object", "properties": {"id": {"type": "string"}}, "required": ["id"]}},
+        {"name": "hive_cancel", "description": "Stop a post: a planned one (`id`, removed from the plan, or stopped if it's being posted) or a running job (`job`). A post stops at its next step and is never cancelled once Post was tapped.",
+         "inputSchema": {"type": "object", "properties": {"id": {"type": "string", "description": "A planned post's id"}, "job": {"type": "integer", "description": "A running job's id"}}}},
         {"name": "hive_job", "description": "What a post (or a check) did so far, line by line, and its result once done. Waits up to `wait_seconds` (default 25) for it to finish.",
          "inputSchema": {"type": "object", "properties": {"id": {"type": "integer"}, "wait_seconds": {"type": "integer"}}, "required": ["id"]}},
         {"name": "hive_check", "description": "Wake a phone, open TikTok and read which account it is on. Returns a job.",
@@ -137,10 +137,13 @@ fn call_tool(api: &Api, name: &str, args: &Value) -> Result<Value> {
         "hive_post" => api.call("POST", "/api/posts", Some(args.clone()))?,
         "hive_plan" => api.call("POST", "/api/queue", Some(args.clone()))?,
         "hive_queue" => api.call("GET", "/api/queue", None)?,
-        "hive_cancel" => {
-            let id = args["id"].as_str().context("id is required")?;
-            api.call("DELETE", &format!("/api/queue/{id}"), None)?
-        }
+        "hive_cancel" => match (args["id"].as_str(), args["job"].as_u64()) {
+            (_, Some(job)) => {
+                api.call("POST", &format!("/api/jobs/{job}/cancel"), Some(json!({})))?
+            }
+            (Some(id), None) => api.call("DELETE", &format!("/api/queue/{id}"), None)?,
+            _ => return Err(anyhow!("give the planned post's `id` or the running `job`")),
+        },
         "hive_check" => {
             let phone = args["phone"].as_str().context("phone is required")?;
             api.call(
