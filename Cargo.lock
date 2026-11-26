@@ -350,8 +350,10 @@ dependencies = [
 name = "hive-uia2"
 version = "0.1.0"
 dependencies = [
+ "hive-adb",
  "hive-core",
  "serde_json",
+ "tiny_http",
  "ureq",
 ]
 
