@@ -1,5 +1,7 @@
 //! hive: plug Android phones in, and they post your videos and slideshows to TikTok.
 
+#[cfg(feature = "studio")]
+mod clips;
 mod engine;
 mod home;
 mod mcp;
@@ -109,6 +111,12 @@ enum Command {
     Paths,
     /// Serve Hive's tools over MCP (stdio), for Claude and other MCP clients.
     Mcp,
+    /// Make vertical clips from a long video: transcript, moments picked by an LLM, cuts.
+    #[cfg(feature = "studio")]
+    Clips {
+        #[command(subcommand)]
+        action: clips::ClipsAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -313,6 +321,8 @@ fn run(cli: Cli) -> Result<()> {
         }
         Command::Serve { address, reload } => serve::serve(Hive::open()?, address, reload)?,
         Command::Mcp => mcp::run()?,
+        #[cfg(feature = "studio")]
+        Command::Clips { action } => clips::run(action)?,
         Command::Bind { account, phone } => {
             let home = home::Home::locate()?;
             let mut config = home.config()?;

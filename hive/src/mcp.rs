@@ -20,6 +20,11 @@ use crate::home::Home;
 
 const PROTOCOL: &str = "2025-06-18";
 
+#[cfg(not(feature = "studio"))]
+const INSTRUCTIONS: &str = "Hive posts to TikTok from Android phones plugged into this computer. Files are paths on this computer. A post takes 1 to 2 minutes: start it with hive_post, then follow it with hive_job. Never post without the user asking for it.";
+#[cfg(feature = "studio")]
+const INSTRUCTIONS: &str = "Hive posts to TikTok from Android phones plugged into this computer, and makes vertical clips from long videos. Files are paths on this computer. A post takes 1 to 2 minutes: start it with hive_post, then follow it with hive_job. Never post without the user asking for it. To make clips yourself: read hive_transcript, pick moments where something visibly happens and pays off (15 to 40 s), look at them with hive_frames (leave out dark scenes, menus, maps), then cut each with hive_make_clip.";
+
 struct Api {
     base: String,
     agent: ureq::Agent,
@@ -113,7 +118,8 @@ fn post_schema(planned: bool) -> Value {
 }
 
 fn tools() -> Value {
-    json!([
+    #[allow(unused_mut)]
+    let mut tools = json!([
         {"name": "hive_phones", "description": "The Android phones plugged in: whether each can post right now (and why not), battery, lock, the TikTok accounts seen on it.",
          "inputSchema": {"type": "object", "properties": {}}},
         {"name": "hive_post", "description": "Post a video or a slideshow on a TikTok account now, with whichever phone holds the account. Returns a job; it takes 1 to 2 minutes, follow it with hive_job.",
@@ -128,7 +134,12 @@ fn tools() -> Value {
          "inputSchema": {"type": "object", "properties": {"id": {"type": "integer"}, "wait_seconds": {"type": "integer"}}, "required": ["id"]}},
         {"name": "hive_check", "description": "Wake a phone, open TikTok and read which account it is on. Returns a job.",
          "inputSchema": {"type": "object", "properties": {"phone": {"type": "string", "description": "adb serial"}}, "required": ["phone"]}}
-    ])
+    ]);
+    #[cfg(feature = "studio")]
+    if let (Some(list), Value::Array(more)) = (tools.as_array_mut(), crate::clips::mcp_tools()) {
+        list.extend(more);
+    }
+    tools
 }
 
 fn call_tool(api: &Api, name: &str, args: &Value) -> Result<Value> {
@@ -218,7 +229,7 @@ pub fn run() -> Result<()> {
                         "protocolVersion": version,
                         "capabilities": {"tools": {}},
                         "serverInfo": {"name": "hive", "version": env!("CARGO_PKG_VERSION")},
-                        "instructions": "Hive posts to TikTok from Android phones plugged into this computer. Files are paths on this computer. A post takes 1 to 2 minutes: start it with hive_post, then follow it with hive_job. Never post without the user asking for it."
+                        "instructions": INSTRUCTIONS
                     }),
                 )?;
             }
@@ -227,6 +238,18 @@ pub fn run() -> Result<()> {
             "tools/call" => {
                 let name = msg["params"]["name"].as_str().unwrap_or("");
                 let args = msg["params"].get("arguments").cloned().unwrap_or(json!({}));
+                // the studio's tools work on files here, without hive serve
+                #[cfg(feature = "studio")]
+                if let Some(result) = crate::clips::mcp_call(&home, name, &args) {
+                    let body = match result {
+                        Ok(content) => json!({"content": content}),
+                        Err(e) => {
+                            json!({"content": [{"type": "text", "text": format!("{e:#}")}], "isError": true})
+                        }
+                    };
+                    reply(&mut out, &id, body)?;
+                    continue;
+                }
                 let result = api.ensure(&home).and_then(|_| call_tool(&api, name, &args));
                 let body = match result {
                     Ok(v) => {

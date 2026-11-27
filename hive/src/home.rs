@@ -46,6 +46,9 @@ pub struct Config {
     pub late_limit_hours: f64,
     #[serde(default)]
     pub accounts: BTreeMap<Handle, AccountConfig>,
+    /// `hive clips`' settings (kept as written when hive is built without the studio).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub studio: Option<toml::Table>,
 }
 
 impl Default for Config {
@@ -54,6 +57,7 @@ impl Default for Config {
             address: default_address(),
             late_limit_hours: default_late(),
             accounts: BTreeMap::new(),
+            studio: None,
         }
     }
 }
@@ -95,6 +99,11 @@ impl Home {
     }
     pub fn apks_dir(&self) -> PathBuf {
         self.data_dir.join("apks")
+    }
+    /// The studio's temporary files (audio, frames, subtitles, its font).
+    #[cfg_attr(not(feature = "studio"), allow(dead_code))]
+    pub fn studio_dir(&self) -> PathBuf {
+        self.data_dir.join("studio")
     }
 
     pub fn config(&self) -> Result<Config> {
