@@ -356,6 +356,7 @@ dependencies = [
  "dirs",
  "hive-adb",
  "hive-core",
+ "hive-studio",
  "hive-tiktok",
  "hive-uia2",
  "jiff",
@@ -379,6 +380,17 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "thiserror",
+]
+
+[[package]]
+name = "hive-studio"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tiny_http",
+ "ureq",
 ]
 
 [[package]]
