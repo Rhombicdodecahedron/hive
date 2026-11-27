@@ -165,6 +165,53 @@ For Claude Desktop, add it to `claude_desktop_config.json`:
 | `hive_plan`, `hive_queue` | Plan posts, list them |
 | `hive_cancel` | Remove a planned post, or stop one that is being posted |
 | `hive_check` | Read the account TikTok is on, on one phone |
+| `hive_transcript`, `hive_frames`, `hive_make_clip`, `hive_make_clips` | With the `studio` feature: [make the clips](#make-the-clips-optional) |
+
+## Make the clips (optional)
+
+Built with the `studio` feature, Hive also makes the clips: give it a long video, and an
+LLM reads its transcript, picks the moments worth a clip, looks at their frames, and
+ffmpeg cuts them into vertical 1080×1920 clips, the hook written on top and the words
+underneath as they are said. It needs **ffmpeg**.
+
+```sh
+cargo install --git https://github.com/Rhombicdodecahedron/hive hive --features studio
+hive clips auto video.mp4             # clips and their captions.md in video-clips/
+```
+
+Set it up in `~/.config/hive/config.toml`. Keys never go in the file, only the name of
+the environment variable that holds them:
+
+```toml
+[studio]
+llm = "openai"                        # any OpenAI-compatible server, or "anthropic"
+base_url = "http://localhost:11434/v1" # Ollama here; default https://api.openai.com/v1
+model = "qwen2.5vl:7b"                # one that sees pictures, to judge the frames
+transcriber = "elevenlabs"            # ELEVENLABS_API_KEY, or "whisper" (whisper.cpp)
+language = "fr"
+count = 6                             # clips per video, 15 to 40 s each
+guidelines = "Hashtags: #gta6 #gta6fr. Address the viewer informally."
+```
+
+With `llm = "anthropic"` the key goes in `ANTHROPIC_API_KEY`; for OpenAI, in
+`OPENAI_API_KEY` (Ollama needs none). With `transcriber = "whisper"`, set
+`whisper_model` to a ggml model file for `whisper-cli`. A video that already has its
+`<name>.words.json` next to it (`[{"w", "s", "e"}]`) isn't transcribed again.
+
+What the LLM looks for is written in [`prompt.rs`](crates/studio/src/prompt.rs): something
+that visibly happens and pays off inside the clip, a comparison players recognise, a
+secret only when it's found. Moments too dark to see are left out before any LLM sees
+them.
+
+| Command | What it does |
+| --- | --- |
+| `hive clips auto <video>` | All of it: transcript, moments, frame check, clips |
+| `hive clips transcript <video>` | The timed transcript, transcribed first if needed |
+| `hive clips frames <video> 12:03-12:30` | Frames across those parts, as one picture |
+| `hive clips make <video> 12:03-12:30,13:10-13:20 --hook "…" -o clip.mp4` | Cut one clip by hand |
+
+No LLM set up? Over MCP, the assistant picks the moments itself: `hive_transcript`,
+`hive_frames` (it sees the picture), then `hive_make_clip` for each one.
 
 ## When TikTok changes
 
@@ -194,8 +241,9 @@ cargo test
 
 The workspace has one crate per part: `hive-core` (phones, accounts, posts and which
 phone posts for which account), `hive-adb`, `hive-uia2` (the UI server), `hive-tiktok`
-(the app's flows, tested against a pretend TikTok) and `hive` (the command line, the
-queue and the dashboard).
+(the app's flows, tested against a pretend TikTok), `hive-studio` (the clips, behind the
+`studio` feature: `cargo test --all-features`) and `hive` (the command line, the queue
+and the dashboard).
 
 ## Contributing
 

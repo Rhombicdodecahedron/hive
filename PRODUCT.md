@@ -6,6 +6,8 @@ Command-line program for Linux and macOS, written in Rust, with a local server
 (`hive serve`: queue runner, JSON API, dashboard) and an MCP server (`hive mcp`). It
 drives Android phones plugged into the same computer, over adb. No account, no cloud
 service, no TikTok API key. Scope: this record covers the `hive` binary and its crates.
+An optional part, the studio (`--features studio`), makes the clips too: a long video in,
+moments picked by an LLM the user chooses (a local one or an API), vertical clips out.
 
 ## Users
 

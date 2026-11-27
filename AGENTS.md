@@ -17,13 +17,21 @@ screen, and TikTok's app driven step by step like a person would.
 - `crates/tiktok` (`hive-tiktok`): TikTok's flows (`flow.rs`) over `Ui` + `Device`, and
   `selectors.toml`, the **only** place that knows what TikTok calls things on screen.
   `tests/fake_app.rs` is a pretend TikTok that answers the built-in selectors.
+- `crates/studio` (`hive-studio`, behind the binary's `studio` feature): long video in,
+  vertical clips out. Words (`words.rs`, `transcribe.rs`: ElevenLabs, whisper.cpp), the
+  LLM port and its adapters (`llm.rs`: OpenAI-compatible, Anthropic), what the LLM is asked
+  (`prompt.rs`), moments and their checks (`moment.rs`), ffmpeg (`media.rs`) and the look of
+  a clip (`render.rs`), and the pipeline (`studio.rs`). `tests/pipeline.rs` runs it against a
+  made-up video and a pretend LLM server (skipped without ffmpeg).
 - `hive/` (the `hive` binary): the CLI (`main.rs`), one post end to end on the right phone with
   per-phone locks (`engine.rs`), the queue (`queue.rs`), `hive serve`'s API, scheduler and
-  dashboard (`serve.rs`, `dashboard.html`), and `hive mcp` (`mcp.rs`).
+  dashboard (`serve.rs`, `dashboard.html`), `hive mcp` (`mcp.rs`), and `hive clips` with its
+  MCP tools (`clips.rs`, `studio` feature only).
 - `assets/`: README images, rendered at 2× (2720 px wide) in the palette of `DESIGN.md`.
 
 Crates depend inwards only: `core` ← `adb` ← `uia2`, `core` ← `tiktok`, and the binary on all.
 `tiktok` never depends on `adb` or `uia2`: it only sees the ports, so it runs against fakes.
+`studio` depends on none of them: making clips and posting them only meet in the binary.
 
 ## Rules
 
@@ -50,6 +58,10 @@ Crates depend inwards only: `core` ← `adb` ← `uia2`, `core` ← `tiktok`, an
   rules for every surface are in [DESIGN.md](DESIGN.md); what Hive is for, who it's for and the
   constraints it keeps are in [PRODUCT.md](PRODUCT.md). Read both before changing what people see.
 - Comments say why, not what; keep them sparse and match the surrounding style.
+- Studio: API keys come from environment variables only, never the config file or a log.
+  What the LLM is asked lives in `prompt.rs`; a rule about what makes a good clip goes there,
+  backed by numbers from real posts. A clip that might show nothing (dark, a menu) is left
+  out rather than made.
 
 ## Issues & PRs
 
@@ -68,7 +80,8 @@ Shared agent skills live in `.agents/skills/` (`.claude/skills/` links to them):
 
 ## Commands
 
-- `cargo build`, `cargo test`, `cargo clippy --all-targets -- -D warnings`, `cargo fmt --all`.
+- `cargo build`, `cargo test --all-features`, `cargo clippy --all-targets --all-features -- -D warnings`,
+  `cargo fmt --all`. Without `--all-features` the studio isn't built.
 - `cargo run -p hive -- phones` (or any subcommand); `HIVE_HOME=<dir>` keeps config and data in
   one folder, `HIVE_ADB=<path>` picks the adb program (the tests use a fake one).
 - `cargo run -p hive -- serve --reload`: the dashboard and API on 127.0.0.1:7878; restarts by
@@ -78,8 +91,8 @@ Shared agent skills live in `.agents/skills/` (`.claude/skills/` links to them):
 
 ## Before opening a PR
 
-Run what CI runs: `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`,
-`cargo test`. A change to a flow, a selector or anything that touches a phone also needs a run
+Run what CI runs: `cargo fmt --all --check`, `cargo clippy --all-targets --all-features -- -D warnings`,
+`cargo test --all-features`. A change to a flow, a selector or anything that touches a phone also needs a run
 on a real phone (`.agents/skills/verify`), with `--draft` unless the account is a test account.
 
 ## Pitfalls
