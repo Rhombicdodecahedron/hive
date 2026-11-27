@@ -171,9 +171,11 @@ impl State {
                     j.result = Some(v);
                 }
                 Err(e) => {
+                    // a client retrying a post needs to tell "wait for the phone" from "broken"
+                    let waiting = e.downcast_ref::<Error>().is_some_and(Error::is_waiting);
                     j.lines.push(format!("error: {e:#}"));
                     j.state = JobState::Failed;
-                    j.result = Some(json!({"error": format!("{e:#}")}));
+                    j.result = Some(json!({"error": format!("{e:#}"), "waiting": waiting}));
                 }
             }
             drop(j);

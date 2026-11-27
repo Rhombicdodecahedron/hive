@@ -134,7 +134,7 @@ the planned posts and what each post did, and a JSON API for your own tools:
 | `POST /api/uploads?name={file}` | Upload a video or picture (raw body); answers its `path` for a post |
 | `POST /api/posts` | Post now: `{"account", "files", "caption", "visibility", "draft"}` → a job |
 | `POST /api/queue` | Plan a post: the same, plus `"at"` |
-| `GET /api/jobs/{id}` | What a post did, line by line, and its result |
+| `GET /api/jobs/{id}` | What a post did, line by line, and its result (on failure, `"waiting": true` when a phone coming back would fix it) |
 | `POST /api/jobs/{id}/cancel` | Stop a post at its next step (never once Post was tapped) |
 | `POST /api/phones/{serial}/check` | Read the account TikTok is on |
 | `GET /api/phones/{serial}/screen.png` | The phone's screen |
